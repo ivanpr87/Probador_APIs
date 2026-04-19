@@ -2,20 +2,22 @@ import requests
 import time
 
 from app.services.test_generator import generate_tests
-from app.services.analyzer import analyze_results   
+from app.services.analyzer import analyze_results
 from app.services.ai_analyzer import ai_analyze
 from app.services.ai_analyzer import calculate_score
+from app.services.history_service import save_test
 
 
-def make_request(url, method, payload=None):
+def make_request(url, method, payload=None, headers=None):
     try:
         start = time.time()
+        req_headers = headers or {}
 
         if method == "GET":
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, headers=req_headers, timeout=5)
 
         elif method == "POST":
-            response = requests.post(url, json=payload, timeout=5)
+            response = requests.post(url, json=payload, headers=req_headers, timeout=5)
 
         else:
             return {"error": "Unsupported method"}
@@ -33,6 +35,7 @@ def make_request(url, method, payload=None):
 
 def run_test(data: dict):
     tests = generate_tests(data)
+    headers = data.get("headers") or {}
 
     results = []
 
@@ -40,7 +43,8 @@ def run_test(data: dict):
         response = make_request(
             test["url"],
             test["method"],
-            test["payload"]
+            test["payload"],
+            headers
         )
 
         results.append({
@@ -54,7 +58,7 @@ def run_test(data: dict):
     ai_data = ai_analyze(analysis, results)
     score = calculate_score(analysis)
 
-    return {
+    result = {
         "total_tests": len(results),
         "results": results,
         "issues_detected": analysis,
@@ -62,3 +66,7 @@ def run_test(data: dict):
         "quality_score": score,
         "ai_insights": ai_data["insights"]
     }
+
+    save_test(data.get("url", ""), data.get("method", ""), result)
+
+    return result

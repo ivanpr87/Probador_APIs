@@ -326,6 +326,63 @@
       color: var(--muted);
     }
     .summary-chip strong { color: var(--text); }
+
+    /* ── Download button ── */
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      margin-top: 20px;
+      padding: 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-download:hover { border-color: var(--accent); color: var(--text); }
+
+    /* ── History ── */
+    .history-list { display: flex; flex-direction: column; gap: 8px; }
+    .history-item {
+      display: grid;
+      grid-template-columns: 52px 1fr 48px auto auto;
+      align-items: center;
+      gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 13px;
+    }
+    @media (max-width: 600px) {
+      .history-item { grid-template-columns: 52px 1fr 48px auto; }
+      .hist-date { display: none; }
+    }
+    .method-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      text-align: center;
+      background: rgba(99,102,241,0.15);
+      color: var(--accent-h);
+    }
+    .hist-url {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .hist-score { font-weight: 700; font-size: 14px; }
+    .hist-date  { color: var(--muted); font-size: 11px; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -361,6 +418,11 @@
     <div>
       <label for="payload">Request Payload <span style="font-weight:400;font-size:12px;">(JSON, for POST)</span></label>
       <textarea id="payload" placeholder='{\n  "username": "johndoe",\n  "email": "john@example.com"\n}'></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label for="headers">Auth Headers <span style="font-weight:400;font-size:12px;">(JSON, optional — e.g. Bearer token)</span></label>
+      <textarea id="headers" style="min-height:80px;" placeholder='{\n  "Authorization": "Bearer your-token-here"\n}'></textarea>
     </div>
 
     <button class="btn-run" id="btn-run" onclick="runTest()">
@@ -419,26 +481,44 @@
           <tbody id="results-tbody"></tbody>
         </table>
       </div>
+
+      <button class="btn-download" id="btn-download" onclick="downloadReport()" style="display:none;">
+        ↓ Download Report (JSON)
+      </button>
     </div>
 
   </div><!-- /results -->
 
+  <!-- HISTORY -->
+  <div class="card" id="history-section" style="display:none;">
+    <p class="card-title">Test History</p>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
 </div><!-- /container -->
 
 <script>
-  async function runTest() {
-    const url     = document.getElementById('url').value.trim();
-    const method  = document.getElementById('method').value;
-    const rawBody = document.getElementById('payload').value.trim();
+  let lastResult = null;
 
-    // ── Validate ──
+  async function runTest() {
+    const url      = document.getElementById('url').value.trim();
+    const method   = document.getElementById('method').value;
+    const rawBody  = document.getElementById('payload').value.trim();
+    const rawHdrs  = document.getElementById('headers').value.trim();
+
     hideError();
     if (!url) { showError('Please enter an endpoint URL.'); return; }
 
     let payload = null;
     if (method === 'POST' && rawBody) {
       try { payload = JSON.parse(rawBody); }
-      catch { showError('Invalid JSON payload — please check the syntax.'); return; }
+      catch { showError('Invalid JSON in payload — please check the syntax.'); return; }
+    }
+
+    let headers = {};
+    if (rawHdrs) {
+      try { headers = JSON.parse(rawHdrs); }
+      catch { showError('Invalid JSON in headers — please check the syntax.'); return; }
     }
 
     setLoading(true);
@@ -448,7 +528,7 @@
       const res = await fetch('/run-test', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ url, method, payload }),
+        body:    JSON.stringify({ url, method, payload, headers }),
       });
 
       if (!res.ok) {
@@ -458,6 +538,7 @@
 
       const data = await res.json();
       renderResults(data);
+      loadHistory();
 
     } catch (e) {
       showError(e.message || 'Unexpected error. Is the backend running?');
@@ -468,15 +549,16 @@
 
   function renderResults(data) {
     const { total_tests, results, issues_detected, severity, quality_score, ai_insights } = data;
+    lastResult = data;
 
     // ── Score ──
     const scoreEl = document.getElementById('score-value');
     const barEl   = document.getElementById('score-bar');
     scoreEl.textContent = quality_score ?? '—';
     const pct = Math.min(100, Math.max(0, quality_score ?? 0));
-    barEl.style.width        = pct + '%';
-    barEl.style.background   = scoreColor(pct);
-    scoreEl.style.color      = scoreColor(pct);
+    barEl.style.width      = pct + '%';
+    barEl.style.background = scoreColor(pct);
+    scoreEl.style.color    = scoreColor(pct);
 
     // ── Severity ──
     const sevVal   = document.getElementById('severity-value');
@@ -484,10 +566,10 @@
     const sev = (severity || 'low').toLowerCase();
     const sevMap = { low: ['var(--low)', 'sev-low'], high: ['var(--high)', 'sev-high'], critical: ['var(--critical)', 'sev-critical'] };
     const [sevColor, sevClass] = sevMap[sev] || sevMap['low'];
-    sevVal.textContent   = sev.charAt(0).toUpperCase() + sev.slice(1);
-    sevVal.style.color   = sevColor;
+    sevVal.textContent  = sev.charAt(0).toUpperCase() + sev.slice(1);
+    sevVal.style.color  = sevColor;
     sevBadge.textContent = sev.toUpperCase();
-    sevBadge.className   = 'severity-badge ' + sevClass;
+    sevBadge.className  = 'severity-badge ' + sevClass;
 
     // ── Summary chips ──
     const passCount = results.filter(r => r.status_code >= 200 && r.status_code < 300).length;
@@ -500,31 +582,18 @@
 
     // ── Issues ──
     const issuesList = document.getElementById('issues-list');
-    if (issues_detected && issues_detected.length) {
-      issuesList.innerHTML = issues_detected.map(i => `
-        <div class="tag-item">
-          <div class="tag-dot dot-issue"></div>
-          <span>${escHtml(i)}</span>
-        </div>`).join('');
-    } else {
-      issuesList.innerHTML = '<p class="empty-state">No issues detected — looking good!</p>';
-    }
+    issuesList.innerHTML = (issues_detected && issues_detected.length)
+      ? issues_detected.map(i => `<div class="tag-item"><div class="tag-dot dot-issue"></div><span>${escHtml(i)}</span></div>`).join('')
+      : '<p class="empty-state">No issues detected — looking good!</p>';
 
     // ── AI Insights ──
     const insightsList = document.getElementById('insights-list');
-    if (ai_insights && ai_insights.length) {
-      insightsList.innerHTML = ai_insights.map(i => `
-        <div class="tag-item">
-          <div class="tag-dot dot-insight"></div>
-          <span>${escHtml(i)}</span>
-        </div>`).join('');
-    } else {
-      insightsList.innerHTML = '<p class="empty-state">No AI insights available.</p>';
-    }
+    insightsList.innerHTML = (ai_insights && ai_insights.length)
+      ? ai_insights.map(i => `<div class="tag-item"><div class="tag-dot dot-insight"></div><span>${escHtml(i)}</span></div>`).join('')
+      : '<p class="empty-state">No AI insights available.</p>';
 
     // ── Table ──
-    const tbody = document.getElementById('results-tbody');
-    tbody.innerHTML = results.map((r, idx) => {
+    document.getElementById('results-tbody').innerHTML = results.map((r, idx) => {
       const code     = r.status_code;
       const badgeCls = !code ? 'code-err' : code < 300 ? 'code-2xx' : code < 500 ? 'code-4xx' : 'code-5xx';
       const codeStr  = code ? `<span class="code-badge ${badgeCls}">${code}</span>` : `<span class="code-badge code-err">—</span>`;
@@ -539,8 +608,56 @@
       </tr>`;
     }).join('');
 
+    document.getElementById('btn-download').style.display = 'flex';
     document.getElementById('results').style.display = 'block';
     document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ── Export ──
+  function downloadReport() {
+    if (!lastResult) return;
+    const blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `sentinel-report-${Date.now()}.json`
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ── History ──
+  async function loadHistory() {
+    try {
+      const res = await fetch('/history');
+      if (!res.ok) return;
+      renderHistory(await res.json());
+    } catch { /* non-critical */ }
+  }
+
+  function renderHistory(items) {
+    const section = document.getElementById('history-section');
+    if (!items || !items.length) { section.style.display = 'none'; return; }
+
+    const sevClsMap = { low: 'sev-low', high: 'sev-high', critical: 'sev-critical' };
+
+    document.getElementById('history-list').innerHTML = items.map(item => {
+      const score   = item.quality_score ?? '—';
+      const sColor  = typeof score === 'number'
+        ? (score >= 70 ? 'var(--low)' : score >= 40 ? 'var(--high)' : 'var(--critical)')
+        : 'var(--muted)';
+      const sev     = (item.severity || 'low').toLowerCase();
+      const dateStr = new Date(item.created_at).toLocaleString();
+      return `
+        <div class="history-item">
+          <span class="method-badge">${escHtml(item.method)}</span>
+          <span class="hist-url" title="${escHtml(item.url)}">${escHtml(item.url)}</span>
+          <span class="hist-score" style="color:${sColor}">${score}</span>
+          <span class="severity-badge ${sevClsMap[sev] || 'sev-low'}">${sev.toUpperCase()}</span>
+          <span class="hist-date">${dateStr}</span>
+        </div>`;
+    }).join('');
+
+    section.style.display = 'block';
   }
 
   // ── Helpers ──
@@ -557,12 +674,12 @@
   }
 
   function setLoading(on) {
-    const btn     = document.getElementById('btn-run');
+    const btn    = document.getElementById('btn-run');
     const spinner = document.getElementById('spinner');
-    const text    = document.getElementById('btn-text');
-    btn.disabled        = on;
+    const text   = document.getElementById('btn-text');
+    btn.disabled          = on;
     spinner.style.display = on ? 'block' : 'none';
-    text.textContent    = on ? 'Running tests...' : '▶ Run AI Test';
+    text.textContent      = on ? 'Running tests...' : '▶ Run AI Test';
   }
 
   function showError(msg) {
@@ -574,6 +691,8 @@
   function hideError() {
     document.getElementById('error-banner').style.display = 'none';
   }
+
+  document.addEventListener('DOMContentLoaded', loadHistory);
 </script>
 </body>
 </html>
