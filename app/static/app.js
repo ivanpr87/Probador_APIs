@@ -447,6 +447,79 @@ function hideError() {
 }
 
 /* ─────────────────────────────────────────
+   Saved Configs
+   ───────────────────────────────────────── */
+async function loadConfigs() {
+  try {
+    const res = await fetch('/configs');
+    if (!res.ok) return;
+    const configs = await res.json();
+    _renderConfigsSelect(configs);
+  } catch { /* silent — feature degrades gracefully */ }
+}
+
+function _renderConfigsSelect(configs) {
+  const sel = document.getElementById('configs-select');
+  sel.innerHTML = '<option value="">— Load a saved config —</option>';
+  configs.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    opt.dataset.config = JSON.stringify(c);
+    sel.appendChild(opt);
+  });
+}
+
+function applyConfig(config) {
+  document.getElementById('url').value     = config.url    ?? '';
+  document.getElementById('method').value  = config.method ?? 'GET';
+  document.getElementById('payload').value = config.payload
+    ? JSON.stringify(config.payload, null, 2) : '';
+  document.getElementById('headers').value = config.headers
+    ? JSON.stringify(config.headers, null, 2) : '';
+  toast(`Config "${config.name}" loaded`, 'success');
+}
+
+async function saveCurrentConfig() {
+  const name = document.getElementById('config-name').value.trim();
+  if (!name) { toast('Enter a config name first', 'error'); return; }
+
+  const url    = document.getElementById('url').value.trim();
+  const method = document.getElementById('method').value;
+  if (!url) { toast('Enter a URL before saving', 'error'); return; }
+
+  const rawBody = document.getElementById('payload').value.trim();
+  const rawHdrs = document.getElementById('headers').value.trim();
+
+  let payload = null;
+  if (rawBody) {
+    try { payload = JSON.parse(rawBody); }
+    catch { toast('Invalid JSON in payload', 'error'); return; }
+  }
+  let headers = null;
+  if (rawHdrs) {
+    try { headers = JSON.parse(rawHdrs); }
+    catch { toast('Invalid JSON in headers', 'error'); return; }
+  }
+
+  try {
+    const res = await fetch('/configs', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, url, method, payload, headers }),
+    });
+    if (res.status === 409) { toast(`Config "${name}" already exists`, 'error'); return; }
+    if (!res.ok) throw new Error('Server error');
+
+    document.getElementById('config-name').value = '';
+    await loadConfigs();
+    toast(`Config "${name}" saved`, 'success');
+  } catch (e) {
+    toast(e.message || 'Could not save config', 'error');
+  }
+}
+
+/* ─────────────────────────────────────────
    Init
    ───────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -474,5 +547,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // Saved configs
+  document.getElementById('configs-select').addEventListener('change', e => {
+    const opt = e.target.selectedOptions[0];
+    if (!opt || !opt.dataset.config) return;
+    try { applyConfig(JSON.parse(opt.dataset.config)); }
+    catch { toast('Could not parse config', 'error'); }
+  });
+
+  document.getElementById('btn-save-config').addEventListener('click', saveCurrentConfig);
+
+  loadConfigs();
   switchView('run-test');
 });

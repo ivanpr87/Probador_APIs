@@ -61,6 +61,20 @@
             <p>Enter your API endpoint and run an automated quality analysis</p>
           </div>
 
+          <!-- Saved configs bar -->
+          <div class="configs-bar" id="configs-bar">
+            <div class="configs-bar-left">
+              <label for="configs-select">Saved Configs</label>
+              <select id="configs-select">
+                <option value="">— Load a saved config —</option>
+              </select>
+            </div>
+            <div class="configs-bar-right">
+              <input id="config-name" type="text" placeholder="Config name…" autocomplete="off" />
+              <button class="btn-save-config" id="btn-save-config">Save Config</button>
+            </div>
+          </div>
+
           <!-- Request config -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-hd">
@@ -160,6 +174,6 @@
 <!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=3"></script>
 </body>
 </html>

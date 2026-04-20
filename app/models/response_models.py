@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel
 
 
@@ -35,3 +35,16 @@ class HistoryPage(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class SavedConfigCreate(BaseModel):
+    name: str
+    url: str
+    method: str = "GET"
+    payload: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, str]] = None
+
+
+class SavedConfig(SavedConfigCreate):
+    id: int
+    created_at: str
