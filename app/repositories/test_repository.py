@@ -14,6 +14,17 @@ def save_result(url: str, method: str, result: dict) -> None:
         )
 
 
+def fetch_history_item(item_id: int) -> Optional[dict]:
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT result FROM tests_history WHERE id = ?",
+            (item_id,),
+        ).fetchone()
+    if not row:
+        return None
+    return json.loads(row["result"])
+
+
 def fetch_history(limit: Optional[int] = None) -> List[HistoryItem]:
     limit = limit or settings.HISTORY_LIMIT
     with get_connection() as conn:

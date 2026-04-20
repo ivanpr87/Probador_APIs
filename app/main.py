@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.test_routes import router
@@ -10,4 +10,16 @@ app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 init_db()
 
 app.include_router(router)
+
+
+@app.middleware("http")
+async def no_cache_static(request: Request, call_next):
+    response = await call_next(request)
+    if any(request.url.path.endswith(ext) for ext in (".js", ".css", ".html", "")):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 app.mount("/", StaticFiles(directory="app/static", html=True), name="static")

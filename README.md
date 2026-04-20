@@ -70,16 +70,27 @@ Open `http://127.0.0.1:8000` in your browser.
 ```
 .
 ├── app/
-│   ├── main.py                 # FastAPI app + static file serving
-│   ├── routes/
-│   │   └── test_routes.py      # POST /run-test endpoint
-│   └── services/
-│       ├── test_generator.py   # Generates 4 test case variants
-│       ├── test_service.py     # Orchestrates execution + aggregation
-│       ├── analyzer.py         # Detects validation issues from results
-│       └── ai_analyzer.py      # Scoring logic + insight generation
+│   ├── main.py                      # FastAPI app + static file serving
+│   ├── api/routes/
+│   │   └── test_routes.py           # POST /run-test, GET /history, GET /history/{id}
+│   ├── services/
+│   │   ├── test_service.py          # Orchestrates test generation, execution, and scoring
+│   │   ├── analysis_service.py      # Issue detection, scoring, severity, and AI insights
+│   │   └── report_service.py        # JSON export report builder
+│   ├── repositories/
+│   │   └── test_repository.py       # SQLite persistence for test history
+│   ├── models/
+│   │   ├── request_models.py        # Pydantic input schemas
+│   │   └── response_models.py       # Pydantic output schemas
+│   ├── core/
+│   │   ├── config.py                # App settings
+│   │   └── database.py              # SQLite connection + schema init
+│   ├── utils/
+│   │   └── http_client.py           # HTTP request executor (5s timeout)
 │   └── static/
-│       └── index.html          # SaaS dashboard (self-contained)
+│       ├── index.html               # SaaS dashboard shell
+│       ├── app.js                   # Frontend logic (navigation, rendering, toasts)
+│       └── styles.css               # Design system (dark mode, KPI cards, history table)
 ├── .gitignore
 └── README.md
 ```
@@ -206,18 +217,18 @@ API Sentinel makes that early detection automatic — no test suite to maintain,
 - **POST and GET only** — PUT, PATCH, DELETE are not supported in this version
 - **No load testing** — tests run sequentially with a single request per case
 - **Static test generation** — edge cases are type-based (missing, wrong types, incomplete); domain-specific logic is not inferred
-- **No history or persistence** — results are not stored between sessions
+- **Auth headers are pass-through only** — no OAuth flows or token refresh; paste a bearer token manually if needed
 
 ---
 
 ## Future Improvements
 
-- [ ] Auth header support (Bearer token, API key)
 - [ ] Additional HTTP methods (PUT, PATCH, DELETE)
-- [ ] Export results as JSON or PDF report
-- [ ] Test history with session persistence
-- [ ] Custom test case editor
+- [ ] OAuth 2.0 / token-refresh support for protected endpoints
+- [ ] PDF export with branded report layout
+- [ ] Custom test case editor for domain-specific edge cases
 - [ ] OpenAPI spec import for automated endpoint discovery
+- [ ] Load testing mode (concurrent requests, percentile latency)
 
 ---
 

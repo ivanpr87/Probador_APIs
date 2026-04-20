@@ -3,145 +3,159 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>API Sentinel — AI API Quality Analyzer</title>
+  <title>API Sentinel</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-<div class="layout">
+<div class="app">
 
-  <!-- ── SIDEBAR ── -->
+  <!-- ══ SIDEBAR ══════════════════════════ -->
   <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">🛡️</div>
-      <div class="brand-name">API <span>Sentinel</span></div>
+    <div class="sidebar-logo">
+      <div class="logo-icon">🛡️</div>
+      <div class="logo-text">API <span>Sentinel</span></div>
     </div>
 
     <nav class="sidebar-nav">
-      <a class="nav-item" data-view="run-test">
-        <span class="nav-icon">🧪</span>
-        <span>Run Test</span>
-      </a>
-      <a class="nav-item" data-view="results">
-        <span class="nav-icon">📊</span>
-        <span>Results</span>
-        <span class="nav-badge" id="results-badge" style="display:none">●</span>
-      </a>
-      <a class="nav-item" data-view="history">
-        <span class="nav-icon">🕘</span>
-        <span>History</span>
-      </a>
+      <button class="nav-btn active" data-view="run-test">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 2l10 6-10 6V2z" fill="currentColor"/></svg>
+        Run Test
+      </button>
+      <button class="nav-btn" data-view="results">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="10" width="2" height="4" rx="1" fill="currentColor"/><rect x="7" y="6" width="2" height="8" rx="1" fill="currentColor"/><rect x="12" y="2" width="2" height="12" rx="1" fill="currentColor"/></svg>
+        Results
+        <span class="nav-pill" id="results-pill" style="display:none"></span>
+      </button>
+      <button class="nav-btn" data-view="history">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5l2 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        History
+      </button>
     </nav>
 
-    <div class="sidebar-footer">
-      <span>API Sentinel v1.0</span>
-    </div>
+    <div class="sidebar-footer">v1.0.0</div>
   </aside>
 
-  <!-- ── MAIN ── -->
-  <div class="main">
+  <!-- ══ WORKSPACE ═════════════════════════ -->
+  <div class="workspace">
 
     <!-- TOPBAR -->
     <header class="topbar">
-      <div class="topbar-title" id="topbar-title">Run Test</div>
-      <div class="topbar-actions" id="topbar-actions"></div>
+      <div class="topbar-left">
+        <span class="topbar-title" id="topbar-title">Run Test</span>
+      </div>
+      <div class="topbar-right" id="topbar-right" style="display:none">
+        <span class="last-status" id="last-status"></span>
+      </div>
     </header>
 
-    <!-- VIEWS -->
-    <div class="view-content">
+    <!-- CONTENT -->
+    <main class="content">
 
       <!-- ── VIEW: RUN TEST ── -->
-      <section class="view" id="view-run-test">
+      <div class="view active" id="view-run-test">
         <div class="view-inner">
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Endpoint Configuration</div>
-              <div class="card-desc">Configure the API endpoint you want to analyze</div>
-            </div>
-            <div class="card-body">
 
-              <div class="two-col" style="margin-bottom:16px">
-                <div class="field">
+          <div class="section-hd">
+            <h2>Configure Test</h2>
+            <p>Enter your API endpoint and run an automated quality analysis</p>
+          </div>
+
+          <!-- Request config -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-hd">
+              <span class="card-title">Request</span>
+            </div>
+            <div class="card-bd">
+              <div class="row-url-method">
+                <div class="field flex-grow">
                   <label for="url">Endpoint URL</label>
-                  <input id="url" type="url" placeholder="https://api.example.com/users" />
+                  <input id="url" type="url" placeholder="https://api.example.com/endpoint" autocomplete="off" />
                 </div>
-                <div class="field" style="max-width:160px">
-                  <label for="method">HTTP Method</label>
+                <div class="field method-field">
+                  <label for="method">Method</label>
                   <select id="method">
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
                   </select>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div class="two-col" style="margin-bottom:16px">
-                <div class="field">
-                  <label for="payload">
-                    Request Payload
-                    <span class="label-hint">(JSON, for POST)</span>
-                  </label>
-                  <textarea id="payload" rows="6" placeholder='{"username": "johndoe", "email": "john@example.com"}'></textarea>
-                </div>
-                <div class="field">
-                  <label for="headers">
-                    Auth Headers
-                    <span class="label-hint">(JSON, optional)</span>
-                  </label>
-                  <textarea id="headers" rows="6" placeholder='{"Authorization": "Bearer your-token-here"}'></textarea>
-                </div>
+          <!-- Payload + Headers -->
+          <div class="two-col" style="margin-bottom:16px">
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-title">Payload</span>
+                <span class="card-hint">JSON · for POST requests</span>
               </div>
-
-              <div class="error-banner" id="error-banner" style="display:none"></div>
-
-              <div class="form-actions">
-                <button class="btn-primary" id="btn-run">
-                  <span class="spinner" id="spinner"></span>
-                  <span id="btn-text">▶ Run AI Test</span>
-                </button>
+              <div class="card-bd">
+                <textarea id="payload" class="code-area" rows="7" placeholder='{&#10;  "username": "johndoe",&#10;  "email": "john@example.com"&#10;}'></textarea>
               </div>
+            </div>
+            <div class="card">
+              <div class="card-hd">
+                <span class="card-title">Auth Headers</span>
+                <span class="card-hint">JSON · optional</span>
+              </div>
+              <div class="card-bd">
+                <textarea id="headers" class="code-area" rows="7" placeholder='{&#10;  "Authorization": "Bearer your-token"&#10;}'></textarea>
+              </div>
+            </div>
+          </div>
 
+          <!-- Actions -->
+          <div class="run-row">
+            <div class="inline-error" id="inline-error" style="display:none">
+              <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3M8 11v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <span id="inline-error-text"></span>
+            </div>
+            <button class="btn-run" id="btn-run">
+              <svg class="spinner-icon" id="spinner" viewBox="0 0 16 16" fill="none" style="display:none"><circle cx="8" cy="8" r="5.5" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><path d="M8 2.5A5.5 5.5 0 0 1 13.5 8" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+              <span id="btn-text">▶ Run AI Test</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── VIEW: RESULTS ── -->
+      <div class="view" id="view-results">
+        <div class="view-inner" id="results-inner">
+          <div class="empty-state">
+            <div class="empty-icon">📊</div>
+            <p class="empty-title">No results yet</p>
+            <p class="empty-desc">Run a test to see your API quality analysis here</p>
+            <button class="btn-secondary" id="go-run-from-results">Go to Run Test</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: HISTORY ── -->
+      <div class="view" id="view-history">
+        <div class="view-inner">
+          <div class="section-hd">
+            <h2>Test History</h2>
+            <p>Click any row to load the full result into the Results view</p>
+          </div>
+          <div id="history-inner">
+            <div class="empty-state">
+              <div class="empty-icon">🕘</div>
+              <p class="empty-title">No tests run yet</p>
+              <p class="empty-desc">Your test history will appear here automatically</p>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      <!-- ── VIEW: RESULTS ── -->
-      <section class="view" id="view-results">
-        <div class="view-inner" id="results-content">
-          <div class="empty-view">
-            <div class="empty-icon">📊</div>
-            <div class="empty-title">No results yet</div>
-            <div class="empty-desc">Run a test to see your analysis here</div>
-            <button class="btn-secondary" id="go-run-test">Go to Run Test</button>
-          </div>
-        </div>
-      </section>
+    </main>
+  </div><!-- /workspace -->
+</div><!-- /app -->
 
-      <!-- ── VIEW: HISTORY ── -->
-      <section class="view" id="view-history">
-        <div class="view-inner" id="history-content">
-          <div class="empty-view">
-            <div class="empty-icon">🕘</div>
-            <div class="empty-title">No history yet</div>
-            <div class="empty-desc">Tests you run will appear here automatically</div>
-          </div>
-        </div>
-      </section>
+<!-- ══ TOAST CONTAINER ══════════════���════ -->
+<div id="toasts" class="toasts"></div>
 
-    </div><!-- /view-content -->
-  </div><!-- /main -->
-</div><!-- /layout -->
-
-<!-- ── DETAIL PANEL (history slide-in) ── -->
-<div class="detail-overlay" id="detail-overlay"></div>
-<aside class="detail-panel" id="detail-panel">
-  <div class="detail-header">
-    <h3>Test Details</h3>
-    <button class="btn-close" id="btn-close-detail">×</button>
-  </div>
-  <div class="detail-body" id="detail-body"></div>
-</aside>
-
-<script src="app.js"></script>
+<script src="app.js?v=2"></script>
 </body>
 </html>
