@@ -26,6 +26,7 @@ def send_request(
         return {
             "status_code": response.status_code,
             "response_time": round(time.time() - start, 3),
+            "response_body": response.text[:500] if response.text else None,
         }
 
     except requests.exceptions.Timeout:

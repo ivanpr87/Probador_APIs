@@ -6,6 +6,7 @@ class TestResult(BaseModel):
     test_name: str
     status_code: Optional[int] = None
     response_time: Optional[float] = None
+    response_body: Optional[str] = None
     error: Optional[str] = None
 
 
@@ -26,3 +27,11 @@ class HistoryItem(BaseModel):
     severity: Optional[str] = None
     total_tests: Optional[int] = None
     created_at: str
+
+
+class HistoryPage(BaseModel):
+    items: List[HistoryItem]
+    total: int
+    page: int
+    limit: int
+    total_pages: int

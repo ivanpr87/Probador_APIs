@@ -8,6 +8,9 @@ class Settings:
     DB_PATH: str = "sentinel.db"
     HTTP_TIMEOUT: int = 5
     HISTORY_LIMIT: int = 50
+    OLLAMA_URL: str = "http://localhost:11434"
+    OLLAMA_MODEL: str = "qwen3:8b"
+    OLLAMA_TIMEOUT: int = 30
 
 
 settings = Settings()

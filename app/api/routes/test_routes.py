@@ -1,10 +1,10 @@
-from typing import Any, Dict, List
+from typing import Any, Dict
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from app.models.request_models import TestRequest
-from app.models.response_models import HistoryItem, TestResponse
+from app.models.response_models import HistoryPage, TestResponse
 from app.repositories.test_repository import fetch_history, fetch_history_item
 from app.services.report_service import build_report
 from app.services.test_service import run_test
@@ -22,9 +22,12 @@ def export_report(data: Dict[str, Any]) -> JSONResponse:
     return JSONResponse(content=build_report(data))
 
 
-@router.get("/history", response_model=List[HistoryItem])
-def get_history() -> List[HistoryItem]:
-    return fetch_history()
+@router.get("/history", response_model=HistoryPage)
+def get_history(
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=50),
+) -> HistoryPage:
+    return fetch_history(page=page, limit=limit)
 
 
 @router.get("/history/{item_id}")

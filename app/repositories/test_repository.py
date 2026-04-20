@@ -1,9 +1,10 @@
 import json
+import math
 from typing import List, Optional
 
 from app.core.config import settings
 from app.core.database import get_connection
-from app.models.response_models import HistoryItem
+from app.models.response_models import HistoryItem, HistoryPage
 
 
 def save_result(url: str, method: str, result: dict) -> None:
@@ -25,19 +26,22 @@ def fetch_history_item(item_id: int) -> Optional[dict]:
     return json.loads(row["result"])
 
 
-def fetch_history(limit: Optional[int] = None) -> List[HistoryItem]:
-    limit = limit or settings.HISTORY_LIMIT
+def fetch_history(page: int = 1, limit: int = 20) -> HistoryPage:
+    limit = min(limit, settings.HISTORY_LIMIT)
+    offset = (page - 1) * limit
+
     with get_connection() as conn:
+        total = conn.execute("SELECT COUNT(*) FROM tests_history").fetchone()[0]
         rows = conn.execute(
             "SELECT id, url, method, result, created_at "
-            "FROM tests_history ORDER BY created_at DESC LIMIT ?",
-            (limit,),
+            "FROM tests_history ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
         ).fetchall()
 
-    history = []
+    items = []
     for r in rows:
         parsed = json.loads(r["result"])
-        history.append(
+        items.append(
             HistoryItem(
                 id=r["id"],
                 url=r["url"],
@@ -48,4 +52,11 @@ def fetch_history(limit: Optional[int] = None) -> List[HistoryItem]:
                 created_at=r["created_at"],
             )
         )
-    return history
+
+    return HistoryPage(
+        items=items,
+        total=total,
+        page=page,
+        limit=limit,
+        total_pages=max(1, math.ceil(total / limit)),
+    )

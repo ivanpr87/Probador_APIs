@@ -5,6 +5,8 @@
 const state = {
   lastResult:   null,
   historyItems: [],
+  historyPage:  1,
+  historyMeta:  null,
 };
 
 const VIEW_TITLES = {
@@ -25,7 +27,7 @@ function switchView(viewId) {
   });
   document.getElementById('topbar-title').textContent = VIEW_TITLES[viewId] ?? viewId;
   renderTopbarActions(viewId);
-  if (viewId === 'history') loadHistory();
+  if (viewId === 'history') loadHistory(1);
 }
 
 function renderTopbarActions(viewId) {
@@ -43,11 +45,18 @@ function renderTopbarActions(viewId) {
 /* ─────────────────────────────────────────
    Run Test
    ───────────────────────────────────────── */
+function _estimateTestCount(method, payload) {
+  if (method === 'GET' && !payload) return '1–2';
+  const keys = payload ? Object.keys(payload).length : 0;
+  return keys > 1 ? '4' : '3';
+}
+
 async function runTest() {
-  const url     = document.getElementById('url').value.trim();
-  const method  = document.getElementById('method').value;
-  const rawBody = document.getElementById('payload').value.trim();
-  const rawHdrs = document.getElementById('headers').value.trim();
+  const url       = document.getElementById('url').value.trim();
+  const method    = document.getElementById('method').value;
+  const rawBody   = document.getElementById('payload').value.trim();
+  const rawHdrs   = document.getElementById('headers').value.trim();
+  const authToken = document.getElementById('auth-token').value.trim();
 
   hideError();
   if (!url) { showError('Please enter an endpoint URL.'); return; }
@@ -64,7 +73,13 @@ async function runTest() {
     catch { showError('Invalid JSON in headers — check the syntax and try again.'); return; }
   }
 
-  setLoading(true);
+  // Auth token shortcut — overrides any Authorization already in headers
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const testCount = _estimateTestCount(method, payload);
+  setLoading(true, testCount);
 
   try {
     const res = await fetch('/run-test', {
@@ -103,16 +118,16 @@ async function runTest() {
 function renderResults(data) {
   const { total_tests, results, issues_detected, severity, quality_score, ai_insights } = data;
 
-  const score    = quality_score ?? 0;
-  const pct      = Math.min(100, Math.max(0, score));
-  const sev      = (severity || 'low').toLowerCase();
-  const clr      = scoreColor(pct);
-  const passed   = results.filter(r => r.status_code >= 200 && r.status_code < 300).length;
-  const failed   = total_tests - passed;
+  const score   = quality_score ?? 0;
+  const pct     = Math.min(100, Math.max(0, score));
+  const sev     = (severity || 'low').toLowerCase();
+  const clr     = scoreColor(pct);
+  const passed  = results.filter(r => r.status_code >= 200 && r.status_code < 300).length;
+  const failed  = total_tests - passed;
 
-  const sevClr   = sev === 'critical' ? 'var(--red)' : sev === 'high' ? 'var(--orange)' : 'var(--green)';
-  const kpiSev   = sev === 'critical' ? 'kpi-bad' : sev === 'high' ? 'kpi-warn' : 'kpi-ok';
-  const kpiFail  = failed > 0 ? 'kpi-bad' : 'kpi-neutral';
+  const sevClr  = sev === 'critical' ? 'var(--red)' : sev === 'high' ? 'var(--orange)' : 'var(--green)';
+  const kpiSev  = sev === 'critical' ? 'kpi-bad' : sev === 'high' ? 'kpi-warn' : 'kpi-ok';
+  const kpiFail = failed > 0 ? 'kpi-bad' : 'kpi-neutral';
 
   document.getElementById('results-inner').innerHTML = `
 
@@ -173,7 +188,7 @@ function renderResults(data) {
     <div class="card">
       <div class="card-hd">
         <span class="card-title">📋 Test Results</span>
-        <span class="card-hint">${total_tests} tests executed</span>
+        <span class="card-hint">${total_tests} tests executed in parallel</span>
       </div>
       <div class="card-bd" style="padding:0">
         <div class="tbl-wrap">
@@ -183,7 +198,8 @@ function renderResults(data) {
                 <th>#</th>
                 <th>Test Name</th>
                 <th>Status</th>
-                <th>Response Time</th>
+                <th>Time</th>
+                <th>Body Preview</th>
                 <th>Error</th>
               </tr>
             </thead>
@@ -200,7 +216,9 @@ function renderResults(data) {
 
 function tagList(items, type) {
   if (!items || !items.length) {
-    const msg = type === 'issue' ? 'No issues detected — looking good!' : 'No insights available.';
+    const msg = type === 'issue'
+      ? 'Sin problemas detectados · No issues detected'
+      : 'Sin recomendaciones · No insights available';
     return `<p class="no-items">${msg}</p>`;
   }
   return `<div class="item-list">
@@ -221,7 +239,13 @@ function resultRow(r, idx) {
   const timeEl = r.response_time != null
     ? `<span class="mono-sm" style="color:var(--text-3)">${(r.response_time * 1000).toFixed(0)} ms</span>`
     : `<span style="color:var(--text-3)">—</span>`;
-  const errEl  = r.error
+  const bodySnippet = r.response_body
+    ? r.response_body.slice(0, 80).replace(/\s+/g, ' ')
+    : null;
+  const bodyEl = bodySnippet
+    ? `<span class="mono-sm" style="color:var(--text-2);max-width:200px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(r.response_body)}">${esc(bodySnippet)}…</span>`
+    : `<span style="color:var(--text-3)">—</span>`;
+  const errEl = r.error
     ? `<span class="mono-sm" style="color:var(--red)">${esc(r.error)}</span>`
     : `<span style="color:var(--text-3)">—</span>`;
 
@@ -230,6 +254,7 @@ function resultRow(r, idx) {
     <td class="mono-sm">${esc(r.test_name || '—')}</td>
     <td>${codeEl}</td>
     <td>${timeEl}</td>
+    <td>${bodyEl}</td>
     <td>${errEl}</td>
   </tr>`;
 }
@@ -250,18 +275,20 @@ function downloadReport() {
 }
 
 /* ─────────────────────────────────────────
-   History
+   History + Pagination
    ───────────────────────────────────────── */
-async function loadHistory() {
+async function loadHistory(page = 1) {
+  state.historyPage = page;
   const container = document.getElementById('history-inner');
   container.innerHTML = `<div class="loading-row">Loading history…</div>`;
 
   try {
-    const res = await fetch('/history');
+    const res = await fetch(`/history?page=${page}&limit=20`);
     if (!res.ok) throw new Error('fetch failed');
-    const items = await res.json();
-    state.historyItems = items;
-    renderHistory(items);
+    const data = await res.json();
+    state.historyItems = data.items;
+    state.historyMeta  = data;
+    renderHistory(data);
   } catch {
     container.innerHTML = `
       <div class="empty-state">
@@ -272,8 +299,10 @@ async function loadHistory() {
   }
 }
 
-function renderHistory(items) {
+function renderHistory(data) {
   const container = document.getElementById('history-inner');
+  const { items, total, page, total_pages } = data;
+
   if (!items || !items.length) {
     container.innerHTML = `
       <div class="empty-state">
@@ -300,6 +329,8 @@ function renderHistory(items) {
       </div>`;
   }).join('');
 
+  const pagination = total_pages > 1 ? _renderPagination(page, total_pages, total) : '';
+
   container.innerHTML = `
     <div class="hist-table">
       <div class="hist-row hist-hd">
@@ -310,6 +341,27 @@ function renderHistory(items) {
         <span>Severity</span>
       </div>
       ${rows}
+    </div>
+    ${pagination}`;
+}
+
+function _renderPagination(page, totalPages, total) {
+  const start = Math.max(1, page - 2);
+  const end   = Math.min(totalPages, page + 2);
+
+  let pageButtons = '';
+  for (let p = start; p <= end; p++) {
+    pageButtons += `<button class="btn-page${p === page ? ' active' : ''}" data-page="${p}">${p}</button>`;
+  }
+
+  return `
+    <div class="pagination">
+      <span class="pagination-info">${total} test${total !== 1 ? 's' : ''} · page ${page} of ${totalPages}</span>
+      <div class="pagination-controls">
+        <button class="btn-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
+        ${pageButtons}
+        <button class="btn-page" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>›</button>
+      </div>
     </div>`;
 }
 
@@ -374,13 +426,15 @@ function cap(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function setLoading(on) {
+function setLoading(on, testCount = '') {
   const btn     = document.getElementById('btn-run');
   const spinner = document.getElementById('spinner');
   const text    = document.getElementById('btn-text');
   btn.disabled          = on;
   spinner.style.display = on ? 'inline' : 'none';
-  text.textContent      = on ? 'Running tests…' : '▶  Run AI Test';
+  text.textContent      = on
+    ? `Running ${testCount} tests in parallel…`
+    : '▶  Run AI Test';
 }
 
 function showError(msg) {
@@ -402,13 +456,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-run').addEventListener('click', runTest);
 
-  document.getElementById('go-run-from-results')?.addEventListener('click', () => switchView('run-test'));
+  document.getElementById('go-run-from-results')
+    ?.addEventListener('click', () => switchView('run-test'));
 
+  // History: clicks en filas y en botones de paginación (delegación)
   document.getElementById('history-inner').addEventListener('click', e => {
     const row = e.target.closest('.hist-row.hist-data');
-    if (!row) return;
-    const idx = parseInt(row.dataset.idx, 10);
-    if (!isNaN(idx)) loadHistoryItem(idx);
+    if (row) {
+      const idx = parseInt(row.dataset.idx, 10);
+      if (!isNaN(idx)) loadHistoryItem(idx);
+      return;
+    }
+    const pageBtn = e.target.closest('.btn-page[data-page]');
+    if (pageBtn && !pageBtn.disabled) {
+      const p = parseInt(pageBtn.dataset.page, 10);
+      if (!isNaN(p)) loadHistory(p);
+    }
   });
 
   switchView('run-test');

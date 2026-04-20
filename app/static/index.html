@@ -100,7 +100,11 @@
                 <span class="card-hint">JSON · optional</span>
               </div>
               <div class="card-bd">
-                <textarea id="headers" class="code-area" rows="7" placeholder='{&#10;  "Authorization": "Bearer your-token"&#10;}'></textarea>
+                <textarea id="headers" class="code-area" rows="5" placeholder='{&#10;  "X-Custom-Header": "value"&#10;}'></textarea>
+                <div class="auth-token-row">
+                  <label for="auth-token">Bearer Token (shortcut)</label>
+                  <input id="auth-token" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…" autocomplete="off" />
+                </div>
               </div>
             </div>
           </div>
