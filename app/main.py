@@ -1,10 +1,11 @@
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routes.test_routes import router
-from app.services.history_service import init_db
+from app.api.routes.test_routes import router
+from app.core.config import settings
+from app.core.database import init_db
 
-app = FastAPI()
+app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
 init_db()
 

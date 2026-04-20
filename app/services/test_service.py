@@ -1,72 +1,64 @@
-import requests
-import time
+from typing import Any, Dict, List
 
-from app.services.test_generator import generate_tests
-from app.services.analyzer import analyze_results
-from app.services.ai_analyzer import ai_analyze
-from app.services.ai_analyzer import calculate_score
-from app.services.history_service import save_test
+from app.models.request_models import TestRequest
+from app.models.response_models import TestResponse, TestResult
+from app.repositories.test_repository import save_result
+from app.services.analysis_service import analyze
+from app.utils.http_client import send_request
 
 
-def make_request(url, method, payload=None, headers=None):
-    try:
-        start = time.time()
-        req_headers = headers or {}
+def _generate_test_cases(request: TestRequest) -> List[Dict[str, Any]]:
+    url = request.url
+    method = request.method
+    payload = request.payload or {}
 
-        if method == "GET":
-            response = requests.get(url, headers=req_headers, timeout=5)
+    cases: List[Dict[str, Any]] = [
+        {"test_name": "valid_request",    "url": url, "method": method, "payload": payload},
+        {"test_name": "missing_payload",  "url": url, "method": method, "payload": None},
+    ]
 
-        elif method == "POST":
-            response = requests.post(url, json=payload, headers=req_headers, timeout=5)
-
+    invalid_payload: Dict[str, Any] = {}
+    for key, value in payload.items():
+        if isinstance(value, int):
+            invalid_payload[key] = "invalid_string"
+        elif isinstance(value, str):
+            invalid_payload[key] = 999
         else:
-            return {"error": "Unsupported method"}
+            invalid_payload[key] = None
+    cases.append({"test_name": "invalid_types", "url": url, "method": method, "payload": invalid_payload})
 
-        duration = time.time() - start
+    if payload:
+        keys = list(payload.keys())
+        incomplete = {k: payload[k] for k in keys[1:]}
+        cases.append({"test_name": "incomplete_payload", "url": url, "method": method, "payload": incomplete})
 
-        return {
-            "status_code": response.status_code,
-            "response_time": round(duration, 3)
-        }
-
-    except Exception as e:
-        return {"error": str(e)}
+    return cases
 
 
-def run_test(data: dict):
-    tests = generate_tests(data)
-    headers = data.get("headers") or {}
+def run_test(request: TestRequest) -> TestResponse:
+    test_cases = _generate_test_cases(request)
 
-    results = []
-
-    for test in tests:
-        response = make_request(
-            test["url"],
-            test["method"],
-            test["payload"],
-            headers
-        )
-
-        results.append({
-            "test_name": test["test_name"],
-            "status_code": response.get("status_code"),
-            "response_time": response.get("response_time"),
-            "error": response.get("error")
+    raw_results: List[Dict[str, Any]] = []
+    for case in test_cases:
+        outcome = send_request(case["url"], case["method"], case["payload"], request.headers)
+        raw_results.append({
+            "test_name":     case["test_name"],
+            "status_code":   outcome.get("status_code"),
+            "response_time": outcome.get("response_time"),
+            "error":         outcome.get("error"),
         })
 
-    analysis = analyze_results(results)
-    ai_data = ai_analyze(analysis, results)
-    score = calculate_score(analysis)
+    analysis = analyze(raw_results)
 
-    result = {
-        "total_tests": len(results),
-        "results": results,
-        "issues_detected": analysis,
-        "severity": ai_data["severity"],
-        "quality_score": score,
-        "ai_insights": ai_data["insights"]
-    }
+    response = TestResponse(
+        total_tests=len(raw_results),
+        results=[TestResult(**r) for r in raw_results],
+        issues_detected=analysis["issues"],
+        severity=analysis["severity"],
+        quality_score=analysis["quality_score"],
+        ai_insights=analysis["insights"],
+    )
 
-    save_test(data.get("url", ""), data.get("method", ""), result)
+    save_result(request.url, request.method, response.model_dump())
 
-    return result
+    return response
