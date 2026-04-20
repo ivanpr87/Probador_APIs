@@ -28,6 +28,7 @@ Built for developers who want fast, automated signal about API health without wr
 - **Live dashboard** — dark-mode SaaS UI with KPI cards, score bars, severity badges, body preview column, and toast notifications
 - **Bearer token shortcut** — dedicated auth token field auto-injects `Authorization: Bearer <token>` header across all test cases
 - **Test history with pagination** — SQLite-backed persistence with page navigation (20 per page); click any row to reload the full result
+- **Saved configurations** — name and persist URL + method + payload + headers combos; load any saved config into the form with one click
 - **JSON export** — download any result as a structured report
 
 ---
@@ -89,14 +90,16 @@ Open `http://127.0.0.1:8000` in your browser.
 ├── app/
 │   ├── main.py                      # FastAPI app + no-cache middleware + static serving
 │   ├── api/routes/
-│   │   └── test_routes.py           # POST /run-test, GET /history, GET /history/{id}
+│   │   ├── test_routes.py           # POST /run-test, GET /history, GET /history/{id}
+│   │   └── configs_routes.py        # GET/POST/DELETE /configs
 │   ├── services/
 │   │   ├── test_service.py          # Test generation + parallel execution + orchestration
 │   │   ├── analysis_service.py      # Issue detection, response time scoring, severity
 │   │   ├── ai_service.py            # Ollama integration + bilingual fallback insights
 │   │   └── report_service.py        # JSON export builder
 │   ├── repositories/
-│   │   └── test_repository.py       # SQLite persistence (history CRUD)
+│   │   ├── test_repository.py       # SQLite persistence (history CRUD)
+│   │   └── configs_repository.py    # SQLite persistence (saved configs CRUD)
 │   ├── models/
 │   │   ├── request_models.py        # Pydantic input schemas
 │   │   └── response_models.py       # Pydantic output schemas
@@ -187,6 +190,24 @@ Open `http://127.0.0.1:8000` in your browser.
 }
 ```
 
+### `GET /configs` · `POST /configs` · `DELETE /configs/{id}`
+
+Manage saved test configurations.
+
+**POST /configs request**
+
+```json
+{
+  "name": "My Auth Endpoint",
+  "url": "https://api.example.com/auth",
+  "method": "POST",
+  "payload": { "username": "test" },
+  "headers": { "X-API-Key": "abc123" }
+}
+```
+
+Returns `201` with the saved config object (including `id` and `created_at`). Returns `409` if the name already exists.
+
 ---
 
 ## Interpreting Results
@@ -252,7 +273,7 @@ API Sentinel makes that early detection automatic — no test suite to maintain,
 - [ ] Additional HTTP methods (PUT, PATCH, DELETE)
 - [ ] OAuth 2.0 / token-refresh support for protected endpoints
 - [ ] History search and filtering
-- [ ] Saved test configurations (name and reuse URL + payload combos)
+- [x] Saved test configurations (name and reuse URL + payload combos)
 - [ ] PDF export with branded report layout
 - [ ] Custom test case editor for domain-specific edge cases
 - [ ] OpenAPI spec import for automated endpoint discovery
