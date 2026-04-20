@@ -43,6 +43,7 @@ class SavedConfigCreate(BaseModel):
     method: str = "GET"
     payload: Optional[Dict[str, Any]] = None
     headers: Optional[Dict[str, str]] = None
+    base_url: Optional[str] = None
 
 
 class SavedConfig(SavedConfigCreate):

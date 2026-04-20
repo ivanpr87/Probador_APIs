@@ -54,14 +54,17 @@ function _estimateTestCount(method, payload) {
 }
 
 async function runTest() {
-  const url       = document.getElementById('url').value.trim();
+  const rawUrl    = document.getElementById('url').value.trim();
+  const baseUrl   = document.getElementById('base-url').value.trim();
   const method    = document.getElementById('method').value;
   const rawBody   = document.getElementById('payload').value.trim();
   const rawHdrs   = document.getElementById('headers').value.trim();
   const authToken = document.getElementById('auth-token').value.trim();
 
   hideError();
-  if (!url) { showError('Please enter an endpoint URL.'); return; }
+  if (!rawUrl) { showError('Please enter an endpoint URL.'); return; }
+
+  const url = baseUrl && rawUrl.startsWith('/') ? baseUrl.replace(/\/$/, '') + rawUrl : rawUrl;
 
   let payload = null;
   if (method === 'POST' && rawBody) {
@@ -512,11 +515,12 @@ function _renderConfigsSelect(configs) {
 }
 
 function applyConfig(config) {
-  document.getElementById('url').value     = config.url    ?? '';
-  document.getElementById('method').value  = config.method ?? 'GET';
-  document.getElementById('payload').value = config.payload
+  document.getElementById('url').value      = config.url      ?? '';
+  document.getElementById('method').value   = config.method   ?? 'GET';
+  document.getElementById('base-url').value = config.base_url ?? '';
+  document.getElementById('payload').value  = config.payload
     ? JSON.stringify(config.payload, null, 2) : '';
-  document.getElementById('headers').value = config.headers
+  document.getElementById('headers').value  = config.headers
     ? JSON.stringify(config.headers, null, 2) : '';
   toast(`Config "${config.name}" loaded`, 'success');
 }
@@ -544,8 +548,9 @@ async function saveCurrentConfig() {
   const name = document.getElementById('config-name').value.trim();
   if (!name) { toast('Enter a config name first', 'error'); return; }
 
-  const url    = document.getElementById('url').value.trim();
-  const method = document.getElementById('method').value;
+  const url     = document.getElementById('url').value.trim();
+  const baseUrl = document.getElementById('base-url').value.trim();
+  const method  = document.getElementById('method').value;
   if (!url) { toast('Enter a URL before saving', 'error'); return; }
 
   const rawBody = document.getElementById('payload').value.trim();
@@ -566,7 +571,7 @@ async function saveCurrentConfig() {
     const res = await fetch('/configs', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, url, method, payload, headers }),
+      body:    JSON.stringify({ name, url, method, payload, headers, base_url: baseUrl || null }),
     });
     if (res.status === 409) { toast(`Config "${name}" already exists`, 'error'); return; }
     if (!res.ok) throw new Error('Server error');

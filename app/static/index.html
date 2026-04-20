@@ -82,10 +82,14 @@
               <span class="card-title">Request</span>
             </div>
             <div class="card-bd">
+              <div class="field" style="margin-bottom:10px">
+                <label for="base-url">Base URL <span class="field-hint">optional — prepended when URL starts with /</span></label>
+                <input id="base-url" type="text" placeholder="https://api.example.com" autocomplete="off" />
+              </div>
               <div class="row-url-method">
                 <div class="field flex-grow">
                   <label for="url">Endpoint URL</label>
-                  <input id="url" type="url" placeholder="https://api.example.com/endpoint" autocomplete="off" />
+                  <input id="url" type="text" placeholder="/endpoint  or  https://api.example.com/endpoint" autocomplete="off" />
                 </div>
                 <div class="field method-field">
                   <label for="method">Method</label>
@@ -198,6 +202,6 @@
 <!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
