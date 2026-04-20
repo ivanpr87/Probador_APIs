@@ -14,6 +14,12 @@ def _generate_test_cases(request: TestRequest) -> List[Dict[str, Any]]:
     method = request.method
     payload = request.payload or {}
 
+    # DELETE: solo valid_request (el body es opcional y no se valida igual)
+    if method == "DELETE":
+        return [
+            {"test_name": "valid_request", "url": url, "method": method, "payload": payload or None},
+        ]
+
     # GET sin payload: solo valid_request + stripped query params si los hay
     if method == "GET" and not payload:
         cases: List[Dict[str, Any]] = [
@@ -30,7 +36,7 @@ def _generate_test_cases(request: TestRequest) -> List[Dict[str, Any]]:
             })
         return cases
 
-    # POST o GET con payload: suite completa
+    # POST / PUT / PATCH (o GET con payload): suite completa
     cases = [
         {"test_name": "valid_request",   "url": url, "method": method, "payload": payload},
         {"test_name": "missing_payload", "url": url, "method": method, "payload": None},

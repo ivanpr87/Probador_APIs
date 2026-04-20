@@ -46,6 +46,7 @@ function renderTopbarActions(viewId) {
    Run Test
    ───────────────────────────────────────── */
 function _estimateTestCount(method, payload) {
+  if (method === 'DELETE') return '1';
   if (method === 'GET' && !payload) return '1–2';
   const keys = payload ? Object.keys(payload).length : 0;
   return keys > 1 ? '4' : '3';
@@ -480,6 +481,25 @@ function applyConfig(config) {
   toast(`Config "${config.name}" loaded`, 'success');
 }
 
+async function deleteCurrentConfig() {
+  const sel = document.getElementById('configs-select');
+  const id  = sel.value;
+  if (!id) return;
+  const name = sel.selectedOptions[0]?.textContent ?? id;
+
+  try {
+    const res = await fetch(`/configs/${id}`, { method: 'DELETE' });
+    if (res.status === 404) { toast('Config not found', 'error'); return; }
+    if (!res.ok) throw new Error('Server error');
+
+    await loadConfigs();
+    document.getElementById('btn-delete-config').style.display = 'none';
+    toast(`Config "${name}" deleted`, 'success');
+  } catch (e) {
+    toast(e.message || 'Could not delete config', 'error');
+  }
+}
+
 async function saveCurrentConfig() {
   const name = document.getElementById('config-name').value.trim();
   if (!name) { toast('Enter a config name first', 'error'); return; }
@@ -550,12 +570,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Saved configs
   document.getElementById('configs-select').addEventListener('change', e => {
     const opt = e.target.selectedOptions[0];
-    if (!opt || !opt.dataset.config) return;
+    const deleteBtn = document.getElementById('btn-delete-config');
+    if (!opt || !opt.dataset.config) {
+      deleteBtn.style.display = 'none';
+      return;
+    }
+    deleteBtn.style.display = 'inline-flex';
     try { applyConfig(JSON.parse(opt.dataset.config)); }
     catch { toast('Could not parse config', 'error'); }
   });
 
   document.getElementById('btn-save-config').addEventListener('click', saveCurrentConfig);
+  document.getElementById('btn-delete-config').addEventListener('click', deleteCurrentConfig);
 
   loadConfigs();
   switchView('run-test');
