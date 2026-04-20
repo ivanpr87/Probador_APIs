@@ -84,10 +84,12 @@ async function runTest() {
   setLoading(true, testCount);
 
   try {
+    const expected_schema = buildExpectedSchema();
+
     const res = await fetch('/run-test', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url, method, payload, headers }),
+      body:    JSON.stringify({ url, method, payload, headers, expected_schema }),
     });
 
     if (!res.ok) {
@@ -454,6 +456,38 @@ function hideError() {
 }
 
 /* ─────────────────────────────────────────
+   Expected Response Schema
+   ───────────────────────────────────────── */
+const SCHEMA_TYPES = ['string', 'int', 'float', 'bool', 'list', 'object'];
+
+function addSchemaField(name = '', type = 'string') {
+  const container = document.getElementById('schema-fields');
+  const row = document.createElement('div');
+  row.className = 'schema-row';
+  row.innerHTML = `
+    <input class="schema-field-name" type="text" placeholder="field name" value="${esc(name)}" autocomplete="off" />
+    <select class="schema-field-type">
+      ${SCHEMA_TYPES.map(t => `<option value="${t}"${t === type ? ' selected' : ''}>${t}</option>`).join('')}
+    </select>
+    <button class="btn-remove-schema-field" title="Remove">×</button>
+  `;
+  row.querySelector('.btn-remove-schema-field').addEventListener('click', () => row.remove());
+  container.appendChild(row);
+}
+
+function buildExpectedSchema() {
+  const rows = document.querySelectorAll('.schema-row');
+  if (!rows.length) return null;
+  const schema = {};
+  rows.forEach(row => {
+    const name = row.querySelector('.schema-field-name').value.trim();
+    const type = row.querySelector('.schema-field-type').value;
+    if (name) schema[name] = type;
+  });
+  return Object.keys(schema).length ? schema : null;
+}
+
+/* ─────────────────────────────────────────
    Saved Configs
    ───────────────────────────────────────── */
 async function loadConfigs() {
@@ -586,6 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
     catch { toast('Could not parse config', 'error'); }
   });
 
+  document.getElementById('btn-add-schema-field').addEventListener('click', () => addSchemaField());
   document.getElementById('btn-save-config').addEventListener('click', saveCurrentConfig);
   document.getElementById('btn-delete-config').addEventListener('click', deleteCurrentConfig);
 

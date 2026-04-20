@@ -860,6 +860,140 @@ td { padding: 10px 14px; color: var(--text); }
 .auth-token-row input::placeholder { color: var(--text-3); }
 
 /* ============================================
+   Expected Response Schema section
+   ============================================ */
+.schema-section {
+  margin-top: 12px;
+  border: 1px solid var(--border-lite);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.schema-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--text-2);
+  background: var(--card-alt);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: color .15s;
+}
+.schema-summary::-webkit-details-marker { display: none; }
+.schema-summary::before {
+  content: '›';
+  font-size: 14px;
+  transition: transform .2s;
+  display: inline-block;
+  color: var(--text-3);
+}
+details[open] .schema-summary::before { transform: rotate(90deg); }
+.schema-summary:hover { color: var(--text); }
+
+.schema-hint {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-3);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.schema-body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+}
+
+.schema-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.schema-field-name {
+  flex: 1;
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 5px 8px;
+  outline: none;
+  transition: border-color .15s;
+}
+.schema-field-name:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.schema-field-name::placeholder { color: var(--text-3); }
+
+.schema-field-type {
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-2);
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 5px 24px 5px 8px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2364748b'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 7px center;
+  transition: border-color .15s;
+}
+.schema-field-type:focus { border-color: var(--accent); }
+
+.btn-remove-schema-field {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-size: 14px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.btn-remove-schema-field:hover {
+  background: var(--red-bg);
+  border-color: var(--red-bd);
+  color: var(--red);
+}
+
+.btn-add-schema-field {
+  align-self: flex-start;
+  padding: 5px 10px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-size: 11px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.btn-add-schema-field:hover {
+  color: var(--accent-h);
+  border-color: var(--accent-ring);
+}
+
+/* ============================================
    History filter bar
    ============================================ */
 .filter-bar {

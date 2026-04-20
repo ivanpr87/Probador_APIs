@@ -7,6 +7,7 @@ class TestRequest(BaseModel):
     method: str
     payload: Optional[Dict[str, Any]] = None
     headers: Optional[Dict[str, str]] = None
+    expected_schema: Optional[Dict[str, str]] = None
 
     @field_validator("method")
     @classmethod

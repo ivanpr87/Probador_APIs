@@ -93,7 +93,12 @@ def run_test(request: TestRequest) -> TestResponse:
     # Restaurar orden original de los casos
     raw_results.sort(key=lambda r: r.pop("_order"))
 
-    analysis = analyze(raw_results, method=request.method, url=request.url)
+    analysis = analyze(
+        raw_results,
+        method=request.method,
+        url=request.url,
+        expected_schema=request.expected_schema,
+    )
 
     response = TestResponse(
         total_tests=len(raw_results),
