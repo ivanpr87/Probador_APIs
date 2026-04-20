@@ -161,6 +161,19 @@
             <h2>Test History</h2>
             <p>Click any row to load the full result into the Results view</p>
           </div>
+
+          <div class="filter-bar">
+            <input id="filter-url" type="text" placeholder="Filter by URL…" autocomplete="off" />
+            <select id="filter-severity">
+              <option value="">All severities</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+            <button class="btn-filter" id="btn-filter">Apply</button>
+            <button class="btn-filter-clear" id="btn-filter-clear">Clear</button>
+          </div>
+
           <div id="history-inner">
             <div class="empty-state">
               <div class="empty-icon">🕘</div>
@@ -178,6 +191,6 @@
 <!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=4"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

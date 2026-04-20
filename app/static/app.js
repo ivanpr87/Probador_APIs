@@ -3,10 +3,11 @@
    ───────────────────────────────────────── */
 
 const state = {
-  lastResult:   null,
-  historyItems: [],
-  historyPage:  1,
-  historyMeta:  null,
+  lastResult:    null,
+  historyItems:  [],
+  historyPage:   1,
+  historyMeta:   null,
+  historyFilters: {},
 };
 
 const VIEW_TITLES = {
@@ -278,13 +279,18 @@ function downloadReport() {
 /* ─────────────────────────────────────────
    History + Pagination
    ───────────────────────────────────────── */
-async function loadHistory(page = 1) {
-  state.historyPage = page;
+async function loadHistory(page = 1, filters = state.historyFilters) {
+  state.historyPage    = page;
+  state.historyFilters = filters;
   const container = document.getElementById('history-inner');
   container.innerHTML = `<div class="loading-row">Loading history…</div>`;
 
   try {
-    const res = await fetch(`/history?page=${page}&limit=20`);
+    const params = new URLSearchParams({ page, limit: 20 });
+    if (filters.url)      params.set('url', filters.url);
+    if (filters.severity) params.set('severity', filters.severity);
+
+    const res = await fetch(`/history?${params}`);
     if (!res.ok) throw new Error('fetch failed');
     const data = await res.json();
     state.historyItems = data.items;
@@ -582,6 +588,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('btn-save-config').addEventListener('click', saveCurrentConfig);
   document.getElementById('btn-delete-config').addEventListener('click', deleteCurrentConfig);
+
+  // History filters
+  document.getElementById('btn-filter').addEventListener('click', () => {
+    const url      = document.getElementById('filter-url').value.trim();
+    const severity = document.getElementById('filter-severity').value;
+    loadHistory(1, { url, severity });
+  });
+
+  document.getElementById('btn-filter-clear').addEventListener('click', () => {
+    document.getElementById('filter-url').value      = '';
+    document.getElementById('filter-severity').value = '';
+    loadHistory(1, {});
+  });
+
+  // Enter en el input de filtro dispara Apply
+  document.getElementById('filter-url').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-filter').click();
+  });
 
   loadConfigs();
   switchView('run-test');

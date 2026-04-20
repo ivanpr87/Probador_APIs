@@ -26,16 +26,35 @@ def fetch_history_item(item_id: int) -> Optional[dict]:
     return json.loads(row["result"])
 
 
-def fetch_history(page: int = 1, limit: int = 20) -> HistoryPage:
+def fetch_history(
+    page: int = 1,
+    limit: int = 20,
+    url_filter: str = "",
+    severity_filter: str = "",
+) -> HistoryPage:
     limit = min(limit, settings.HISTORY_LIMIT)
     offset = (page - 1) * limit
 
+    where_clauses: List[str] = []
+    params: List[str] = []
+
+    if url_filter:
+        where_clauses.append("url LIKE ?")
+        params.append(f"%{url_filter}%")
+    if severity_filter:
+        where_clauses.append("json_extract(result, '$.severity') = ?")
+        params.append(severity_filter.lower())
+
+    where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
+
     with get_connection() as conn:
-        total = conn.execute("SELECT COUNT(*) FROM tests_history").fetchone()[0]
+        total = conn.execute(
+            f"SELECT COUNT(*) FROM tests_history {where_sql}", params
+        ).fetchone()[0]
         rows = conn.execute(
-            "SELECT id, url, method, result, created_at "
-            "FROM tests_history ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            (limit, offset),
+            f"SELECT id, url, method, result, created_at "
+            f"FROM tests_history {where_sql} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            params + [limit, offset],
         ).fetchall()
 
     items = []
