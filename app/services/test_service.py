@@ -61,20 +61,35 @@ def _generate_test_cases(request: TestRequest) -> List[Dict[str, Any]]:
 
 
 def _execute_case(case: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
-    outcome = send_request(case["url"], case["method"], case["payload"], headers)
+    # Por-caso: usar headers específicos del caso si existen, sino los globales
+    effective_headers = case.pop("_headers", headers)
+    outcome = send_request(case["url"], case["method"], case["payload"], effective_headers)
     return {
-        "test_name":     case["test_name"],
-        "status_code":   outcome.get("status_code"),
-        "response_time": outcome.get("response_time"),
-        "response_body": outcome.get("response_body"),
-        "error":         outcome.get("error"),
-        "_order":        case["_order"],
+        "test_name":       case["test_name"],
+        "status_code":     outcome.get("status_code"),
+        "response_time":   outcome.get("response_time"),
+        "response_body":   outcome.get("response_body"),
+        "error":           outcome.get("error"),
+        "expected_status": case.get("expected_status"),
+        "_order":          case["_order"],
     }
 
 
 def run_test(request: TestRequest) -> TestResponse:
+    base_headers = request.headers or {}
     test_cases = _generate_test_cases(request)
-    headers = request.headers or {}
+
+    # Agregar casos custom del usuario (ejecutados en paralelo junto a los auto-generados)
+    for custom in (request.custom_cases or []):
+        merged_headers = {**base_headers, **(custom.headers or {})}
+        test_cases.append({
+            "test_name":       custom.name,
+            "url":             request.url,
+            "method":          request.method,
+            "payload":         custom.payload,
+            "expected_status": custom.expected_status,
+            "_headers":        merged_headers,
+        })
 
     # Inyectar índice de orden para reordenar después de ejecución paralela
     for i, case in enumerate(test_cases):
@@ -84,7 +99,7 @@ def run_test(request: TestRequest) -> TestResponse:
 
     with ThreadPoolExecutor(max_workers=min(len(test_cases), 4)) as executor:
         futures = {
-            executor.submit(_execute_case, case, headers): case
+            executor.submit(_execute_case, case, base_headers): case
             for case in test_cases
         }
         for future in as_completed(futures):

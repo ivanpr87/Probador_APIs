@@ -138,6 +138,21 @@
             </div>
           </div>
 
+          <!-- Custom Test Cases -->
+          <div class="card" style="margin-bottom:16px">
+            <details class="custom-cases-section" id="custom-cases-section">
+              <summary class="custom-cases-summary">
+                <span>Custom Test Cases</span>
+                <span class="custom-cases-count" id="custom-cases-count" style="display:none"></span>
+                <span class="schema-hint">optional · run alongside auto-generated tests</span>
+              </summary>
+              <div class="custom-cases-body">
+                <div id="custom-cases-list"></div>
+                <button class="btn-add-custom-case" id="btn-add-custom-case">+ Add test case</button>
+              </div>
+            </details>
+          </div>
+
           <!-- Actions -->
           <div class="run-row">
             <div class="inline-error" id="inline-error" style="display:none">
@@ -202,6 +217,6 @@
 <!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

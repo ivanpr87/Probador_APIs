@@ -8,6 +8,7 @@ class TestResult(BaseModel):
     response_time: Optional[float] = None
     response_body: Optional[str] = None
     error: Optional[str] = None
+    expected_status: Optional[int] = None
 
 
 class TestResponse(BaseModel):

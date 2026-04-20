@@ -88,11 +88,16 @@ async function runTest() {
 
   try {
     const expected_schema = buildExpectedSchema();
+    const custom_cases    = buildCustomCases();
+    if (custom_cases === null && document.querySelectorAll('.custom-case-row').length > 0) {
+      setLoading(false);
+      return; // buildCustomCases ya mostró el toast de error
+    }
 
     const res = await fetch('/run-test', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url, method, payload, headers, expected_schema }),
+      body:    JSON.stringify({ url, method, payload, headers, expected_schema, custom_cases }),
     });
 
     if (!res.ok) {
@@ -459,6 +464,76 @@ function hideError() {
 }
 
 /* ─────────────────────────────────────────
+   Custom Test Cases
+   ───────────────────────────────────────── */
+function addCustomCase() {
+  const list = document.getElementById('custom-cases-list');
+  const row  = document.createElement('div');
+  row.className = 'custom-case-row';
+  row.innerHTML = `
+    <div class="custom-case-header">
+      <input class="custom-case-name" type="text" placeholder="Case name (e.g. no auth)" autocomplete="off" />
+      <input class="custom-case-status" type="number" min="100" max="599" placeholder="Expected status" />
+      <button class="btn-remove-custom-case" title="Remove">×</button>
+    </div>
+    <textarea class="custom-case-payload code-area" rows="2" placeholder='{"key": "value"}  — optional payload'></textarea>
+    <textarea class="custom-case-headers code-area" rows="2" placeholder='{"X-Header": "value"}  — optional headers'></textarea>
+  `;
+  row.querySelector('.btn-remove-custom-case').addEventListener('click', () => {
+    row.remove();
+    _updateCustomCasesCount();
+  });
+  list.appendChild(row);
+  _updateCustomCasesCount();
+  document.getElementById('custom-cases-section').open = true;
+}
+
+function _updateCustomCasesCount() {
+  const count = document.getElementById('custom-cases-list').children.length;
+  const badge = document.getElementById('custom-cases-count');
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function buildCustomCases() {
+  const rows = document.querySelectorAll('.custom-case-row');
+  if (!rows.length) return null;
+
+  const cases = [];
+  for (const row of rows) {
+    const name = row.querySelector('.custom-case-name').value.trim();
+    if (!name) continue;
+
+    const statusRaw  = row.querySelector('.custom-case-status').value.trim();
+    const payloadRaw = row.querySelector('.custom-case-payload').value.trim();
+    const headersRaw = row.querySelector('.custom-case-headers').value.trim();
+
+    let payload = null;
+    if (payloadRaw) {
+      try { payload = JSON.parse(payloadRaw); }
+      catch { toast(`Custom case "${name}": invalid JSON in payload`, 'error'); return null; }
+    }
+    let headers = null;
+    if (headersRaw) {
+      try { headers = JSON.parse(headersRaw); }
+      catch { toast(`Custom case "${name}": invalid JSON in headers`, 'error'); return null; }
+    }
+
+    cases.push({
+      name,
+      payload,
+      headers,
+      expected_status: statusRaw ? parseInt(statusRaw, 10) : null,
+    });
+  }
+  return cases.length ? cases : null;
+}
+
+/* ─────────────────────────────────────────
    Expected Response Schema
    ───────────────────────────────────────── */
 const SCHEMA_TYPES = ['string', 'int', 'float', 'bool', 'list', 'object'];
@@ -625,6 +700,7 @@ document.addEventListener('DOMContentLoaded', () => {
     catch { toast('Could not parse config', 'error'); }
   });
 
+  document.getElementById('btn-add-custom-case').addEventListener('click', addCustomCase);
   document.getElementById('btn-add-schema-field').addEventListener('click', () => addSchemaField());
   document.getElementById('btn-save-config').addEventListener('click', saveCurrentConfig);
   document.getElementById('btn-delete-config').addEventListener('click', deleteCurrentConfig);

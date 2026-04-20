@@ -1,5 +1,12 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, field_validator
+
+
+class CustomTestCase(BaseModel):
+    name: str
+    payload: Optional[Dict[str, Any]] = None
+    headers: Optional[Dict[str, str]] = None
+    expected_status: Optional[int] = None
 
 
 class TestRequest(BaseModel):
@@ -8,6 +15,7 @@ class TestRequest(BaseModel):
     payload: Optional[Dict[str, Any]] = None
     headers: Optional[Dict[str, str]] = None
     expected_schema: Optional[Dict[str, str]] = None
+    custom_cases: Optional[List[CustomTestCase]] = None
 
     @field_validator("method")
     @classmethod

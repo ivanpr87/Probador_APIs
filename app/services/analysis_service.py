@@ -96,6 +96,17 @@ def detect_issues(results: List[Dict[str, Any]]) -> List[str]:
                 "False positive: API returns 200 but response body contains error indicators"
             )
 
+    # Validar expected_status de casos custom
+    for result in results:
+        expected = result.get("expected_status")
+        actual = result.get("status_code")
+        name = result.get("test_name", "custom")
+        if expected is not None and actual is not None and expected != actual:
+            issues.append(
+                f"Caso '{name}': se esperaba status {expected}, se recibió {actual} · "
+                f"Case '{name}': expected status {expected}, got {actual}"
+            )
+
     avg = _avg_response_time(results)
     if avg >= _TIME_CRITICAL:
         issues.append(
@@ -126,8 +137,10 @@ def calculate_score(issues: List[str], results: List[Dict[str, Any]]) -> int:
             score -= 20 if avg >= _TIME_CRITICAL else 10
         elif "ausente en la respuesta" in issue or "missing from response" in issue:
             score -= 10
-        elif "debería ser" in issue or "expected " in issue and "schema" in issue.lower():
+        elif "debería ser" in issue or ("expected " in issue and "schema" in issue.lower()):
             score -= 5
+        elif "se esperaba status" in issue or "expected status" in issue:
+            score -= 10
 
     return max(score, 0)
 

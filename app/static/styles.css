@@ -860,6 +860,152 @@ td { padding: 10px 14px; color: var(--text); }
 .auth-token-row input::placeholder { color: var(--text-3); }
 
 /* ============================================
+   Custom Test Cases section
+   ============================================ */
+.custom-cases-section {
+  border: none;
+}
+
+.custom-cases-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 18px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--surface);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  transition: color .15s;
+}
+.custom-cases-summary::-webkit-details-marker { display: none; }
+.custom-cases-summary::before {
+  content: '›';
+  font-size: 14px;
+  transition: transform .2s;
+  display: inline-block;
+  color: var(--text-3);
+  margin-right: 2px;
+}
+details.custom-cases-section[open] .custom-cases-summary::before { transform: rotate(90deg); }
+details.custom-cases-section[open] .custom-cases-summary {
+  border-bottom: 1px solid var(--border-lite);
+}
+
+.custom-cases-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.custom-cases-body {
+  padding: 12px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.custom-case-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--card-alt);
+  border: 1px solid var(--border-lite);
+  border-radius: var(--r-sm);
+}
+
+.custom-case-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.custom-case-name {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--font);
+  padding: 5px 9px;
+  outline: none;
+  transition: border-color .15s;
+  width: auto;
+}
+.custom-case-name:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.custom-case-name::placeholder { color: var(--text-3); }
+
+.custom-case-status {
+  width: 160px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+  padding: 5px 9px;
+  outline: none;
+  transition: border-color .15s;
+}
+.custom-case-status:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.custom-case-status::placeholder { color: var(--text-3); }
+
+.btn-remove-custom-case {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.btn-remove-custom-case:hover {
+  background: var(--red-bg);
+  border-color: var(--red-bd);
+  color: var(--red);
+}
+
+.custom-case-payload,
+.custom-case-headers { font-size: 11px; resize: vertical; }
+
+.btn-add-custom-case {
+  align-self: flex-start;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  color: var(--text-3);
+  font-size: 12px;
+  font-family: var(--font);
+  cursor: pointer;
+  transition: color .15s, border-color .15s;
+}
+.btn-add-custom-case:hover {
+  color: var(--accent-h);
+  border-color: var(--accent-ring);
+}
+
+/* ============================================
    Field hint inline label
    ============================================ */
 .field-hint {
