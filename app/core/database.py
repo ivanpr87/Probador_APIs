@@ -43,6 +43,12 @@ def init_db() -> None:
                 method     TEXT NOT NULL DEFAULT 'GET',
                 payload    TEXT,
                 headers    TEXT,
+                base_url   TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Migración: agregar base_url a instalaciones existentes sin romper el schema
+        try:
+            conn.execute("ALTER TABLE saved_configs ADD COLUMN base_url TEXT")
+        except Exception:
+            pass  # columna ya existe — ignorar

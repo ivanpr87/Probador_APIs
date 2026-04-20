@@ -860,6 +860,18 @@ td { padding: 10px 14px; color: var(--text); }
 .auth-token-row input::placeholder { color: var(--text-3); }
 
 /* ============================================
+   Field hint inline label
+   ============================================ */
+.field-hint {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-3);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: 4px;
+}
+
+/* ============================================
    Expected Response Schema section
    ============================================ */
 .schema-section {
