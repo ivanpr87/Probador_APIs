@@ -106,10 +106,17 @@
             <div class="card">
               <div class="card-hd">
                 <span class="card-title">Payload</span>
-                <span class="card-hint">JSON · for POST requests</span>
+                <span class="card-hint">JSON · for POST/PUT/PATCH</span>
               </div>
               <div class="card-bd">
-                <textarea id="payload" class="code-area" rows="7" placeholder='{&#10;  "username": "johndoe",&#10;  "email": "john@example.com"&#10;}'></textarea>
+                <textarea id="payload" class="code-area" rows="5" placeholder='{&#10;  "username": "johndoe",&#10;  "email": "john@example.com"&#10;}'></textarea>
+                <details class="schema-section" id="schema-section">
+                  <summary class="schema-summary">Expected Response Schema <span class="schema-hint">optional</span></summary>
+                  <div class="schema-body">
+                    <div id="schema-fields"></div>
+                    <button class="btn-add-schema-field" id="btn-add-schema-field">+ Add field</button>
+                  </div>
+                </details>
               </div>
             </div>
             <div class="card">
@@ -191,6 +198,6 @@
 <!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
