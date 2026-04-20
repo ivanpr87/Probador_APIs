@@ -11,7 +11,7 @@ class TestRequest(BaseModel):
     @field_validator("method")
     @classmethod
     def validate_method(cls, v: str) -> str:
-        allowed = {"GET", "POST"}
+        allowed = {"GET", "POST", "PUT", "PATCH", "DELETE"}
         upper = v.upper()
         if upper not in allowed:
             raise ValueError(f"Method must be one of: {allowed}")

@@ -3,10 +3,11 @@
    ───────────────────────────────────────── */
 
 const state = {
-  lastResult:   null,
-  historyItems: [],
-  historyPage:  1,
-  historyMeta:  null,
+  lastResult:    null,
+  historyItems:  [],
+  historyPage:   1,
+  historyMeta:   null,
+  historyFilters: {},
 };
 
 const VIEW_TITLES = {
@@ -46,6 +47,7 @@ function renderTopbarActions(viewId) {
    Run Test
    ───────────────────────────────────────── */
 function _estimateTestCount(method, payload) {
+  if (method === 'DELETE') return '1';
   if (method === 'GET' && !payload) return '1–2';
   const keys = payload ? Object.keys(payload).length : 0;
   return keys > 1 ? '4' : '3';
@@ -277,13 +279,18 @@ function downloadReport() {
 /* ─────────────────────────────────────────
    History + Pagination
    ───────────────────────────────────────── */
-async function loadHistory(page = 1) {
-  state.historyPage = page;
+async function loadHistory(page = 1, filters = state.historyFilters) {
+  state.historyPage    = page;
+  state.historyFilters = filters;
   const container = document.getElementById('history-inner');
   container.innerHTML = `<div class="loading-row">Loading history…</div>`;
 
   try {
-    const res = await fetch(`/history?page=${page}&limit=20`);
+    const params = new URLSearchParams({ page, limit: 20 });
+    if (filters.url)      params.set('url', filters.url);
+    if (filters.severity) params.set('severity', filters.severity);
+
+    const res = await fetch(`/history?${params}`);
     if (!res.ok) throw new Error('fetch failed');
     const data = await res.json();
     state.historyItems = data.items;
@@ -480,6 +487,25 @@ function applyConfig(config) {
   toast(`Config "${config.name}" loaded`, 'success');
 }
 
+async function deleteCurrentConfig() {
+  const sel = document.getElementById('configs-select');
+  const id  = sel.value;
+  if (!id) return;
+  const name = sel.selectedOptions[0]?.textContent ?? id;
+
+  try {
+    const res = await fetch(`/configs/${id}`, { method: 'DELETE' });
+    if (res.status === 404) { toast('Config not found', 'error'); return; }
+    if (!res.ok) throw new Error('Server error');
+
+    await loadConfigs();
+    document.getElementById('btn-delete-config').style.display = 'none';
+    toast(`Config "${name}" deleted`, 'success');
+  } catch (e) {
+    toast(e.message || 'Could not delete config', 'error');
+  }
+}
+
 async function saveCurrentConfig() {
   const name = document.getElementById('config-name').value.trim();
   if (!name) { toast('Enter a config name first', 'error'); return; }
@@ -550,12 +576,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Saved configs
   document.getElementById('configs-select').addEventListener('change', e => {
     const opt = e.target.selectedOptions[0];
-    if (!opt || !opt.dataset.config) return;
+    const deleteBtn = document.getElementById('btn-delete-config');
+    if (!opt || !opt.dataset.config) {
+      deleteBtn.style.display = 'none';
+      return;
+    }
+    deleteBtn.style.display = 'inline-flex';
     try { applyConfig(JSON.parse(opt.dataset.config)); }
     catch { toast('Could not parse config', 'error'); }
   });
 
   document.getElementById('btn-save-config').addEventListener('click', saveCurrentConfig);
+  document.getElementById('btn-delete-config').addEventListener('click', deleteCurrentConfig);
+
+  // History filters
+  document.getElementById('btn-filter').addEventListener('click', () => {
+    const url      = document.getElementById('filter-url').value.trim();
+    const severity = document.getElementById('filter-severity').value;
+    loadHistory(1, { url, severity });
+  });
+
+  document.getElementById('btn-filter-clear').addEventListener('click', () => {
+    document.getElementById('filter-url').value      = '';
+    document.getElementById('filter-severity').value = '';
+    loadHistory(1, {});
+  });
+
+  // Enter en el input de filtro dispara Apply
+  document.getElementById('filter-url').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-filter').click();
+  });
 
   loadConfigs();
   switchView('run-test');

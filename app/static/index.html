@@ -72,6 +72,7 @@
             <div class="configs-bar-right">
               <input id="config-name" type="text" placeholder="Config name…" autocomplete="off" />
               <button class="btn-save-config" id="btn-save-config">Save Config</button>
+              <button class="btn-delete-config" id="btn-delete-config" style="display:none" title="Delete selected config">×</button>
             </div>
           </div>
 
@@ -91,6 +92,9 @@
                   <select id="method">
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
+                    <option value="PUT">PUT</option>
+                    <option value="PATCH">PATCH</option>
+                    <option value="DELETE">DELETE</option>
                   </select>
                 </div>
               </div>
@@ -157,6 +161,19 @@
             <h2>Test History</h2>
             <p>Click any row to load the full result into the Results view</p>
           </div>
+
+          <div class="filter-bar">
+            <input id="filter-url" type="text" placeholder="Filter by URL…" autocomplete="off" />
+            <select id="filter-severity">
+              <option value="">All severities</option>
+              <option value="low">Low</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+            <button class="btn-filter" id="btn-filter">Apply</button>
+            <button class="btn-filter-clear" id="btn-filter-clear">Clear</button>
+          </div>
+
           <div id="history-inner">
             <div class="empty-state">
               <div class="empty-icon">🕘</div>
@@ -174,6 +191,6 @@
 <!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

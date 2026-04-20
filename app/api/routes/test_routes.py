@@ -26,8 +26,10 @@ def export_report(data: Dict[str, Any]) -> JSONResponse:
 def get_history(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=50),
+    url: str = Query(default=""),
+    severity: str = Query(default=""),
 ) -> HistoryPage:
-    return fetch_history(page=page, limit=limit)
+    return fetch_history(page=page, limit=limit, url_filter=url, severity_filter=severity)
 
 
 @router.get("/history/{item_id}")
