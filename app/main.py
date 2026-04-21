@@ -1,17 +1,29 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.configs_routes import router as configs_router
+from app.api.routes.scheduler_routes import router as scheduler_router
 from app.api.routes.test_routes import router
 from app.core.config import settings
 from app.core.database import init_db
+from app.services import scheduler_service
 
-app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
 
-init_db()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    scheduler_service.start_scheduler()
+    yield
+    scheduler_service.stop_scheduler()
+
+
+app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, lifespan=lifespan)
 
 app.include_router(router)
 app.include_router(configs_router)
+app.include_router(scheduler_router)
 
 
 @app.middleware("http")

@@ -3,18 +3,293 @@
    ───────────────────────────────────────── */
 
 const state = {
-  lastResult:    null,
-  historyItems:  [],
-  historyPage:   1,
-  historyMeta:   null,
+  lastResult:     null,
+  historyItems:   [],
+  historyPage:    1,
+  historyMeta:    null,
   historyFilters: {},
+  lastSchedules:  null,
+  lang: localStorage.getItem('sentinel-lang') || 'en',
 };
 
-const VIEW_TITLES = {
-  'run-test': 'Run Test',
-  'results':  'Results',
-  'history':  'History',
+/* ─────────────────────────────────────────
+   i18n
+   ───────────────────────────────────────── */
+const TRANSLATIONS = {
+  en: {
+    'nav.run-test': 'Run Test',
+    'nav.results':  'Results',
+    'nav.history':  'History',
+    'run.title':         'Configure Test',
+    'run.subtitle':      'Enter your API endpoint and run an automated quality analysis',
+    'run.saved-configs': 'Saved Configs',
+    'run.load-config':   '— Load a saved config —',
+    'run.config-name-ph':'Config name…',
+    'run.save-config':   'Save Config',
+    'run.request':       'Request',
+    'run.base-url-label':'Base URL',
+    'run.base-url-hint': 'optional — prepended when URL starts with /',
+    'run.base-url-ph':   'https://api.example.com',
+    'run.url-label':     'Endpoint URL',
+    'run.url-ph':        '/endpoint  or  https://api.example.com/endpoint',
+    'run.method-label':  'Method',
+    'run.payload':       'Payload',
+    'run.payload-hint':  'JSON · for POST/PUT/PATCH',
+    'run.schema-title':  'Expected Response Schema',
+    'run.schema-hint':   'optional',
+    'run.add-field':     '+ Add field',
+    'run.auth-headers':  'Auth Headers',
+    'run.auth-hint':     'JSON · optional',
+    'run.bearer-label':  'Bearer Token (shortcut)',
+    'run.custom-title':  'Custom Test Cases',
+    'run.custom-hint':   'optional · run alongside auto-generated tests',
+    'run.add-case':      '+ Add test case',
+    'run.btn-run':       '▶  Run AI Test',
+    'results.empty-title': 'No results yet',
+    'results.empty-desc':  'Run a test to see your API quality analysis here',
+    'results.go-run':      'Go to Run Test',
+    'history.title':       'Test History',
+    'history.subtitle':    'Click any row to load the full result into the Results view',
+    'history.filter-url-ph': 'Filter by URL…',
+    'history.apply':       'Apply',
+    'history.clear':       'Clear',
+    'history.empty-title': 'No tests run yet',
+    'history.empty-desc':  'Your test history will appear here automatically',
+    'filter.all':      'All severities',
+    'filter.low':      'Low',
+    'filter.high':     'High',
+    'filter.critical': 'Critical',
+    'schedules.title':       'Scheduled Tests',
+    'schedules.subtitle':    'Run tests automatically on a recurring schedule',
+    'schedules.new':         'New Schedule',
+    'schedules.name-label':  'Name',
+    'schedules.name-ph':     'e.g. Check prod API every hour',
+    'schedules.config-label':'Saved Config',
+    'schedules.config-ph':   '— Select a saved config —',
+    'schedules.cron-label':  'Cron Expression',
+    'schedules.add-btn':     '+ Add Schedule',
+    'schedules.presets':     'Presets:',
+    'schedules.p5m':         'every 5 min',
+    'schedules.p30m':        'every 30 min',
+    'schedules.p1h':         'every hour',
+    'schedules.p6h':         'every 6 h',
+    'schedules.p9':          'daily 9 am',
+    'schedules.empty-title': 'No schedules yet',
+    'schedules.empty-desc':  'Create one above to start running tests automatically',
+    // JS-rendered strings — schedules
+    'js.sched-tbl-name':    'Name',
+    'js.sched-tbl-config':  'Config',
+    'js.sched-tbl-cron':    'Cron',
+    'js.sched-tbl-status':  'Status',
+    'js.sched-tbl-lastrun': 'Last run',
+    'js.sched-enabled':     'Enabled',
+    'js.sched-disabled':    'Disabled',
+    'js.sched-never':       'Never',
+    'js.sched-deleted':     'Schedule deleted',
+    'js.sched-created':     'Schedule created',
+    'js.sched-toggled-on':  'Schedule enabled',
+    'js.sched-toggled-off': 'Schedule disabled',
+    // JS-rendered strings
+    'js.kpi-score':    'Quality Score',
+    'js.kpi-severity': 'Severity',
+    'js.kpi-passed':   'Tests Passed',
+    'js.kpi-failed':   'Tests Failed',
+    'js.kpi-of':       'of',
+    'js.kpi-total':    'total',
+    'js.parallel':     'tests executed in parallel',
+    'js.issues-card':  '⚠ Detected Issues',
+    'js.insights-card':'✦ AI Insights',
+    'js.results-card': '📋 Test Results',
+    'js.tbl-name':     'Test Name',
+    'js.tbl-status':   'Status',
+    'js.tbl-time':     'Time',
+    'js.tbl-body':     'Body Preview',
+    'js.tbl-error':    'Error',
+    'js.no-issues':    'No issues detected',
+    'js.no-insights':  'No insights available',
+    'js.issue':        'issue',
+    'js.issues':       'issues',
+    'js.found':        'found',
+    'js.recommendation':  'recommendation',
+    'js.recommendations': 'recommendations',
+    'js.export-json':  '↓ Export JSON',
+    'js.export-pdf':   '🖨 Export PDF',
+    'js.loading-hist': 'Loading history…',
+    'js.tbl-url':      'URL',
+    'js.tbl-method':   'Method',
+    'js.tbl-date':     'Date',
+    'js.tbl-score':    'Score',
+    'js.tbl-severity': 'Severity',
+    'js.hist-err-title': 'Could not load history',
+    'js.hist-err-desc':  'Make sure the backend is running',
+    'js.no-hist':        'No history yet',
+    'js.no-hist-desc':   'Tests you run will appear here automatically',
+    'js.page': 'page',
+    'js.of':   'of',
+    'js.running':       'Running',
+    'js.tests-parallel':'tests in parallel…',
+    'js.btn-idle':      '▶  Run AI Test',
+  },
+  es: {
+    'nav.run-test': 'Ejecutar Test',
+    'nav.results':  'Resultados',
+    'nav.history':  'Historial',
+    'run.title':         'Configurar Test',
+    'run.subtitle':      'Ingresá tu endpoint y ejecutá un análisis de calidad automatizado',
+    'run.saved-configs': 'Configs Guardadas',
+    'run.load-config':   '— Cargar una config guardada —',
+    'run.config-name-ph':'Nombre de config…',
+    'run.save-config':   'Guardar Config',
+    'run.request':       'Solicitud',
+    'run.base-url-label':'URL Base',
+    'run.base-url-hint': 'opcional — se antepone si la URL empieza con /',
+    'run.base-url-ph':   'https://api.ejemplo.com',
+    'run.url-label':     'URL del Endpoint',
+    'run.url-ph':        '/endpoint  o  https://api.ejemplo.com/endpoint',
+    'run.method-label':  'Método',
+    'run.payload':       'Payload',
+    'run.payload-hint':  'JSON · para POST/PUT/PATCH',
+    'run.schema-title':  'Schema de Respuesta Esperado',
+    'run.schema-hint':   'opcional',
+    'run.add-field':     '+ Agregar campo',
+    'run.auth-headers':  'Cabeceras de Autenticación',
+    'run.auth-hint':     'JSON · opcional',
+    'run.bearer-label':  'Bearer Token (atajo)',
+    'run.custom-title':  'Casos de Test Personalizados',
+    'run.custom-hint':   'opcional · se ejecutan junto a los tests auto-generados',
+    'run.add-case':      '+ Agregar caso',
+    'run.btn-run':       '▶  Ejecutar Test IA',
+    'results.empty-title': 'Sin resultados aún',
+    'results.empty-desc':  'Ejecutá un test para ver el análisis de calidad aquí',
+    'results.go-run':      'Ir a Ejecutar Test',
+    'history.title':       'Historial de Tests',
+    'history.subtitle':    'Hacé clic en cualquier fila para cargar el resultado completo',
+    'history.filter-url-ph': 'Filtrar por URL…',
+    'history.apply':       'Aplicar',
+    'history.clear':       'Limpiar',
+    'history.empty-title': 'Sin tests ejecutados aún',
+    'history.empty-desc':  'Tu historial aparecerá aquí automáticamente',
+    'filter.all':      'Todas las severidades',
+    'filter.low':      'Bajo',
+    'filter.high':     'Alto',
+    'filter.critical': 'Crítico',
+    'schedules.title':       'Tests Programados',
+    'schedules.subtitle':    'Ejecutá tests automáticamente con un schedule recurrente',
+    'schedules.new':         'Nuevo Schedule',
+    'schedules.name-label':  'Nombre',
+    'schedules.name-ph':     'ej. Verificar API prod cada hora',
+    'schedules.config-label':'Config Guardada',
+    'schedules.config-ph':   '— Seleccioná una config guardada —',
+    'schedules.cron-label':  'Expresión Cron',
+    'schedules.add-btn':     '+ Agregar Schedule',
+    'schedules.presets':     'Presets:',
+    'schedules.p5m':         'cada 5 min',
+    'schedules.p30m':        'cada 30 min',
+    'schedules.p1h':         'cada hora',
+    'schedules.p6h':         'cada 6 h',
+    'schedules.p9':          'diario 9 am',
+    'schedules.empty-title': 'Sin schedules aún',
+    'schedules.empty-desc':  'Creá uno arriba para empezar a ejecutar tests automáticamente',
+    // JS-rendered strings — schedules
+    'js.sched-tbl-name':    'Nombre',
+    'js.sched-tbl-config':  'Config',
+    'js.sched-tbl-cron':    'Cron',
+    'js.sched-tbl-status':  'Estado',
+    'js.sched-tbl-lastrun': 'Último run',
+    'js.sched-enabled':     'Habilitado',
+    'js.sched-disabled':    'Deshabilitado',
+    'js.sched-never':       'Nunca',
+    'js.sched-deleted':     'Schedule eliminado',
+    'js.sched-created':     'Schedule creado',
+    'js.sched-toggled-on':  'Schedule habilitado',
+    'js.sched-toggled-off': 'Schedule deshabilitado',
+    // JS-rendered strings
+    'js.kpi-score':    'Score de Calidad',
+    'js.kpi-severity': 'Severidad',
+    'js.kpi-passed':   'Tests Pasados',
+    'js.kpi-failed':   'Tests Fallidos',
+    'js.kpi-of':       'de',
+    'js.kpi-total':    'total',
+    'js.parallel':     'tests ejecutados en paralelo',
+    'js.issues-card':  '⚠ Problemas Detectados',
+    'js.insights-card':'✦ Insights de IA',
+    'js.results-card': '📋 Resultados de Tests',
+    'js.tbl-name':     'Nombre de Test',
+    'js.tbl-status':   'Estado',
+    'js.tbl-time':     'Tiempo',
+    'js.tbl-body':     'Vista Previa del Body',
+    'js.tbl-error':    'Error',
+    'js.no-issues':    'Sin problemas detectados',
+    'js.no-insights':  'Sin recomendaciones',
+    'js.issue':        'problema',
+    'js.issues':       'problemas',
+    'js.found':        'encontrado/s',
+    'js.recommendation':  'recomendación',
+    'js.recommendations': 'recomendaciones',
+    'js.export-json':  '↓ Exportar JSON',
+    'js.export-pdf':   '🖨 Exportar PDF',
+    'js.loading-hist': 'Cargando historial…',
+    'js.tbl-url':      'URL',
+    'js.tbl-method':   'Método',
+    'js.tbl-date':     'Fecha',
+    'js.tbl-score':    'Score',
+    'js.tbl-severity': 'Severidad',
+    'js.hist-err-title': 'No se pudo cargar el historial',
+    'js.hist-err-desc':  'Asegurate que el backend esté corriendo',
+    'js.no-hist':        'Sin historial aún',
+    'js.no-hist-desc':   'Los tests que ejecutes aparecerán aquí automáticamente',
+    'js.page': 'página',
+    'js.of':   'de',
+    'js.running':       'Ejecutando',
+    'js.tests-parallel':'tests en paralelo…',
+    'js.btn-idle':      '▶  Ejecutar Test IA',
+  },
 };
+
+function t(key) {
+  return TRANSLATIONS[state.lang]?.[key] ?? TRANSLATIONS.en[key] ?? key;
+}
+
+function applyTranslations() {
+  document.getElementById('html-root').lang = state.lang;
+
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const val = t(key);
+    if (val !== undefined) el.textContent = val;
+  });
+
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    const key = el.dataset.i18nPh;
+    const val = t(key);
+    if (val !== undefined) el.placeholder = val;
+  });
+
+  const btn = document.getElementById('btn-lang');
+  if (btn) btn.textContent = state.lang === 'en' ? 'ES' : 'EN';
+
+  // Keep btn-text in sync when not loading
+  const btnText = document.getElementById('btn-text');
+  if (btnText && !document.getElementById('btn-run').disabled) {
+    btnText.textContent = t('run.btn-run');
+  }
+}
+
+function setLang(lang) {
+  state.lang = lang;
+  localStorage.setItem('sentinel-lang', lang);
+  applyTranslations();
+  // Re-render active dynamic view so table headers / empty states update
+  const active = document.querySelector('.nav-btn.active');
+  if (active) {
+    const view = active.dataset.view;
+    document.getElementById('topbar-title').textContent = t(`nav.${view}`);
+    renderTopbarActions(view);
+    if (view === 'results'   && state.lastResult)   renderResults(state.lastResult);
+    if (view === 'history'   && state.historyMeta)  renderHistory(state.historyMeta);
+    if (view === 'schedules' && state.lastSchedules) renderSchedules(state.lastSchedules);
+  }
+}
 
 /* ─────────────────────────────────────────
    Navigation
@@ -26,17 +301,22 @@ function switchView(viewId) {
   document.querySelectorAll('.view').forEach(el => {
     el.classList.toggle('active', el.id === `view-${viewId}`);
   });
-  document.getElementById('topbar-title').textContent = VIEW_TITLES[viewId] ?? viewId;
+  document.getElementById('topbar-title').textContent = t(`nav.${viewId}`);
   renderTopbarActions(viewId);
-  if (viewId === 'history') loadHistory(1);
+  if (viewId === 'history')   loadHistory(1);
+  if (viewId === 'schedules') { loadSchedules(); _populateSchedConfigSelect(); }
 }
 
 function renderTopbarActions(viewId) {
   const el = document.getElementById('topbar-right');
   if (viewId === 'results' && state.lastResult) {
     el.style.display = 'flex';
-    el.innerHTML = `<button class="btn-secondary" id="btn-export">↓ Export JSON</button>`;
-    document.getElementById('btn-export').addEventListener('click', downloadReport);
+    el.innerHTML = `
+      <button class="btn-secondary" id="btn-export-json">${t('js.export-json')}</button>
+      <button class="btn-secondary" id="btn-export-pdf">${t('js.export-pdf')}</button>
+    `;
+    document.getElementById('btn-export-json').addEventListener('click', downloadReport);
+    document.getElementById('btn-export-pdf').addEventListener('click', () => window.print());
   } else {
     el.style.display = 'none';
     el.innerHTML = '';
@@ -67,7 +347,7 @@ async function runTest() {
   const url = baseUrl && rawUrl.startsWith('/') ? baseUrl.replace(/\/$/, '') + rawUrl : rawUrl;
 
   let payload = null;
-  if (method === 'POST' && rawBody) {
+  if (method !== 'GET' && method !== 'DELETE' && rawBody) {
     try { payload = JSON.parse(rawBody); }
     catch { showError('Invalid JSON in payload — check the syntax and try again.'); return; }
   }
@@ -141,12 +421,17 @@ function renderResults(data) {
   const kpiSev  = sev === 'critical' ? 'kpi-bad' : sev === 'high' ? 'kpi-warn' : 'kpi-ok';
   const kpiFail = failed > 0 ? 'kpi-bad' : 'kpi-neutral';
 
+  const issueCount  = issues_detected.length;
+  const issueLabel  = issueCount !== 1 ? t('js.issues') : t('js.issue');
+  const insightCount = ai_insights.length;
+  const insightLabel = insightCount !== 1 ? t('js.recommendations') : t('js.recommendation');
+
   document.getElementById('results-inner').innerHTML = `
 
     <div class="kpi-grid">
 
       <div class="kpi-card kpi-score">
-        <div class="kpi-label">Quality Score</div>
+        <div class="kpi-label">${t('js.kpi-score')}</div>
         <div class="kpi-value" style="color:${clr}">${score}</div>
         <div class="score-bar">
           <div class="score-bar-fill" style="width:${pct}%;background:${clr}"></div>
@@ -154,21 +439,21 @@ function renderResults(data) {
       </div>
 
       <div class="kpi-card ${kpiSev}">
-        <div class="kpi-label">Severity</div>
+        <div class="kpi-label">${t('js.kpi-severity')}</div>
         <div class="kpi-value" style="font-size:26px;color:${sevClr};margin-bottom:10px">${cap(sev)}</div>
         <span class="badge badge-${sev}">${sev.toUpperCase()}</span>
       </div>
 
       <div class="kpi-card kpi-ok">
-        <div class="kpi-label">Tests Passed</div>
+        <div class="kpi-label">${t('js.kpi-passed')}</div>
         <div class="kpi-value" style="color:var(--green)">${passed}</div>
-        <div class="kpi-sub">of ${total_tests} total</div>
+        <div class="kpi-sub">${t('js.kpi-of')} ${total_tests} ${t('js.kpi-total')}</div>
       </div>
 
       <div class="kpi-card ${kpiFail}">
-        <div class="kpi-label">Tests Failed</div>
+        <div class="kpi-label">${t('js.kpi-failed')}</div>
         <div class="kpi-value" style="color:${failed > 0 ? 'var(--red)' : 'var(--text-3)'}">${failed}</div>
-        <div class="kpi-sub">of ${total_tests} total</div>
+        <div class="kpi-sub">${t('js.kpi-of')} ${total_tests} ${t('js.kpi-total')}</div>
       </div>
 
     </div>
@@ -177,8 +462,8 @@ function renderResults(data) {
 
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">⚠ Detected Issues</span>
-          <span class="card-hint">${issues_detected.length} issue${issues_detected.length !== 1 ? 's' : ''} found</span>
+          <span class="card-title">${t('js.issues-card')}</span>
+          <span class="card-hint">${issueCount} ${issueLabel} ${t('js.found')}</span>
         </div>
         <div class="card-bd">
           ${tagList(issues_detected, 'issue')}
@@ -187,8 +472,8 @@ function renderResults(data) {
 
       <div class="card">
         <div class="card-hd">
-          <span class="card-title">✦ AI Insights</span>
-          <span class="card-hint">${ai_insights.length} recommendation${ai_insights.length !== 1 ? 's' : ''}</span>
+          <span class="card-title">${t('js.insights-card')}</span>
+          <span class="card-hint">${insightCount} ${insightLabel}</span>
         </div>
         <div class="card-bd">
           ${tagList(ai_insights, 'insight')}
@@ -199,8 +484,8 @@ function renderResults(data) {
 
     <div class="card">
       <div class="card-hd">
-        <span class="card-title">📋 Test Results</span>
-        <span class="card-hint">${total_tests} tests executed in parallel</span>
+        <span class="card-title">${t('js.results-card')}</span>
+        <span class="card-hint">${total_tests} ${t('js.parallel')}</span>
       </div>
       <div class="card-bd" style="padding:0">
         <div class="tbl-wrap">
@@ -208,11 +493,11 @@ function renderResults(data) {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Test Name</th>
-                <th>Status</th>
-                <th>Time</th>
-                <th>Body Preview</th>
-                <th>Error</th>
+                <th>${t('js.tbl-name')}</th>
+                <th>${t('js.tbl-status')}</th>
+                <th>${t('js.tbl-time')}</th>
+                <th>${t('js.tbl-body')}</th>
+                <th>${t('js.tbl-error')}</th>
               </tr>
             </thead>
             <tbody>
@@ -228,9 +513,7 @@ function renderResults(data) {
 
 function tagList(items, type) {
   if (!items || !items.length) {
-    const msg = type === 'issue'
-      ? 'Sin problemas detectados · No issues detected'
-      : 'Sin recomendaciones · No insights available';
+    const msg = type === 'issue' ? t('js.no-issues') : t('js.no-insights');
     return `<p class="no-items">${msg}</p>`;
   }
   return `<div class="item-list">
@@ -293,7 +576,7 @@ async function loadHistory(page = 1, filters = state.historyFilters) {
   state.historyPage    = page;
   state.historyFilters = filters;
   const container = document.getElementById('history-inner');
-  container.innerHTML = `<div class="loading-row">Loading history…</div>`;
+  container.innerHTML = `<div class="loading-row">${t('js.loading-hist')}</div>`;
 
   try {
     const params = new URLSearchParams({ page, limit: 20 });
@@ -310,8 +593,8 @@ async function loadHistory(page = 1, filters = state.historyFilters) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
-        <p class="empty-title">Could not load history</p>
-        <p class="empty-desc">Make sure the backend is running</p>
+        <p class="empty-title">${t('js.hist-err-title')}</p>
+        <p class="empty-desc">${t('js.hist-err-desc')}</p>
       </div>`;
   }
 }
@@ -324,8 +607,8 @@ function renderHistory(data) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">🕘</div>
-        <p class="empty-title">No history yet</p>
-        <p class="empty-desc">Tests you run will appear here automatically</p>
+        <p class="empty-title">${t('js.no-hist')}</p>
+        <p class="empty-desc">${t('js.no-hist-desc')}</p>
       </div>`;
     return;
   }
@@ -351,11 +634,11 @@ function renderHistory(data) {
   container.innerHTML = `
     <div class="hist-table">
       <div class="hist-row hist-hd">
-        <span>URL</span>
-        <span>Method</span>
-        <span>Date</span>
-        <span>Score</span>
-        <span>Severity</span>
+        <span>${t('js.tbl-url')}</span>
+        <span>${t('js.tbl-method')}</span>
+        <span>${t('js.tbl-date')}</span>
+        <span>${t('js.tbl-score')}</span>
+        <span>${t('js.tbl-severity')}</span>
       </div>
       ${rows}
     </div>
@@ -373,7 +656,7 @@ function _renderPagination(page, totalPages, total) {
 
   return `
     <div class="pagination">
-      <span class="pagination-info">${total} test${total !== 1 ? 's' : ''} · page ${page} of ${totalPages}</span>
+      <span class="pagination-info">${total} · ${t('js.page')} ${page} ${t('js.of')} ${totalPages}</span>
       <div class="pagination-controls">
         <button class="btn-page" data-page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>‹</button>
         ${pageButtons}
@@ -450,8 +733,8 @@ function setLoading(on, testCount = '') {
   btn.disabled          = on;
   spinner.style.display = on ? 'inline' : 'none';
   text.textContent      = on
-    ? `Running ${testCount} tests in parallel…`
-    : '▶  Run AI Test';
+    ? `${t('js.running')} ${testCount} ${t('js.tests-parallel')}`
+    : t('run.btn-run');
 }
 
 function showError(msg) {
@@ -545,7 +828,7 @@ function addSchemaField(name = '', type = 'string') {
   row.innerHTML = `
     <input class="schema-field-name" type="text" placeholder="field name" value="${esc(name)}" autocomplete="off" />
     <select class="schema-field-type">
-      ${SCHEMA_TYPES.map(t => `<option value="${t}"${t === type ? ' selected' : ''}>${t}</option>`).join('')}
+      ${SCHEMA_TYPES.map(tp => `<option value="${tp}"${tp === type ? ' selected' : ''}>${tp}</option>`).join('')}
     </select>
     <button class="btn-remove-schema-field" title="Remove">×</button>
   `;
@@ -579,7 +862,7 @@ async function loadConfigs() {
 
 function _renderConfigsSelect(configs) {
   const sel = document.getElementById('configs-select');
-  sel.innerHTML = '<option value="">— Load a saved config —</option>';
+  sel.innerHTML = `<option value="">${t('run.load-config')}</option>`;
   configs.forEach(c => {
     const opt = document.createElement('option');
     opt.value = c.id;
@@ -660,6 +943,163 @@ async function saveCurrentConfig() {
 }
 
 /* ─────────────────────────────────────────
+   Schedules
+   ───────────────────────────────────────── */
+async function loadSchedules() {
+  const container = document.getElementById('schedules-inner');
+  try {
+    const res = await fetch('/schedules');
+    if (!res.ok) throw new Error('fetch failed');
+    const schedules = await res.json();
+
+    // Actualizar pill con cantidad de schedules activos
+    const activeCount = schedules.filter(s => s.enabled).length;
+    const pill = document.getElementById('schedules-pill');
+    if (activeCount > 0) {
+      pill.textContent = activeCount;
+      pill.style.display = 'inline';
+    } else {
+      pill.style.display = 'none';
+    }
+
+    state.lastSchedules = schedules;
+    renderSchedules(schedules);
+  } catch {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <p class="empty-title">${t('js.hist-err-title')}</p>
+        <p class="empty-desc">${t('js.hist-err-desc')}</p>
+      </div>`;
+  }
+}
+
+function renderSchedules(schedules) {
+  const container = document.getElementById('schedules-inner');
+
+  if (!schedules || !schedules.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🗓️</div>
+        <p class="empty-title">${t('schedules.empty-title')}</p>
+        <p class="empty-desc">${t('schedules.empty-desc')}</p>
+      </div>`;
+    return;
+  }
+
+  const rows = schedules.map(s => {
+    const statusCls = s.enabled ? 'badge-low' : 'badge-disabled';
+    const statusTxt = s.enabled ? t('js.sched-enabled') : t('js.sched-disabled');
+    const lastRun   = s.last_run
+      ? new Date(s.last_run).toLocaleString()
+      : t('js.sched-never');
+    const configName = esc(s.config_name || `Config #${s.config_id}`);
+
+    return `
+      <div class="sched-row" data-id="${s.id}">
+        <span class="sched-name">${esc(s.name)}</span>
+        <span class="sched-config">${configName}</span>
+        <span class="sched-cron mono-sm">${esc(s.cron)}</span>
+        <span class="badge ${statusCls}">${statusTxt}</span>
+        <span class="sched-lastrun">${lastRun}</span>
+        <div class="sched-actions">
+          <button class="btn-sched-toggle btn-secondary ${s.enabled ? 'btn-pause' : 'btn-resume'}"
+                  data-id="${s.id}" title="${s.enabled ? 'Disable' : 'Enable'}">
+            ${s.enabled ? '⏸' : '▶'}
+          </button>
+          <button class="btn-sched-delete btn-danger" data-id="${s.id}" title="Delete">✕</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="sched-table">
+      <div class="sched-row sched-hd">
+        <span>${t('js.sched-tbl-name')}</span>
+        <span>${t('js.sched-tbl-config')}</span>
+        <span>${t('js.sched-tbl-cron')}</span>
+        <span>${t('js.sched-tbl-status')}</span>
+        <span>${t('js.sched-tbl-lastrun')}</span>
+        <span></span>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+async function createSchedule() {
+  const name     = document.getElementById('sched-name').value.trim();
+  const configId = document.getElementById('sched-config').value;
+  const cron     = document.getElementById('sched-cron').value.trim();
+
+  if (!name)     { toast('Enter a schedule name', 'error'); return; }
+  if (!configId) { toast('Select a saved config', 'error'); return; }
+  if (!cron)     { toast('Enter a cron expression', 'error'); return; }
+
+  try {
+    const res = await fetch('/schedules', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ name, config_id: parseInt(configId, 10), cron }),
+    });
+    if (res.status === 422) {
+      const err = await res.json();
+      toast(err.detail || 'Invalid cron expression', 'error');
+      return;
+    }
+    if (res.status === 404) { toast('Config not found', 'error'); return; }
+    if (!res.ok) throw new Error('Server error');
+
+    document.getElementById('sched-name').value = '';
+    document.getElementById('sched-cron').value = '';
+    document.getElementById('sched-config').value = '';
+    toast(t('js.sched-created'), 'success');
+    await loadSchedules();
+  } catch (e) {
+    toast(e.message || 'Could not create schedule', 'error');
+  }
+}
+
+async function toggleSchedule(scheduleId) {
+  try {
+    const res = await fetch(`/schedules/${scheduleId}/toggle`, { method: 'PATCH' });
+    if (!res.ok) throw new Error('Server error');
+    const data = await res.json();
+    toast(data.enabled ? t('js.sched-toggled-on') : t('js.sched-toggled-off'), 'info');
+    await loadSchedules();
+  } catch (e) {
+    toast(e.message || 'Could not toggle schedule', 'error');
+  }
+}
+
+async function deleteSchedule(scheduleId) {
+  try {
+    const res = await fetch(`/schedules/${scheduleId}`, { method: 'DELETE' });
+    if (res.status === 404) { toast('Schedule not found', 'error'); return; }
+    if (!res.ok) throw new Error('Server error');
+    toast(t('js.sched-deleted'), 'success');
+    await loadSchedules();
+  } catch (e) {
+    toast(e.message || 'Could not delete schedule', 'error');
+  }
+}
+
+async function _populateSchedConfigSelect() {
+  try {
+    const res = await fetch('/configs');
+    if (!res.ok) return;
+    const configs = await res.json();
+    const sel = document.getElementById('sched-config');
+    sel.innerHTML = `<option value="">${t('schedules.config-ph')}</option>`;
+    configs.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      sel.appendChild(opt);
+    });
+  } catch { /* silencioso */ }
+}
+
+/* ─────────────────────────────────────────
    Init
    ───────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', () => {
@@ -723,6 +1163,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') document.getElementById('btn-filter').click();
   });
 
+  // Language toggle
+  document.getElementById('btn-lang').addEventListener('click', () => {
+    setLang(state.lang === 'en' ? 'es' : 'en');
+  });
+
+  // Schedules: crear
+  document.getElementById('btn-add-schedule').addEventListener('click', createSchedule);
+
+  // Schedules: preset buttons
+  document.querySelectorAll('.btn-cron-preset').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('sched-cron').value = btn.dataset.cron;
+    });
+  });
+
+  // Schedules: toggle y delete (delegación en el contenedor)
+  document.getElementById('schedules-inner').addEventListener('click', e => {
+    const toggleBtn = e.target.closest('.btn-sched-toggle');
+    if (toggleBtn) {
+      toggleSchedule(parseInt(toggleBtn.dataset.id, 10));
+      return;
+    }
+    const deleteBtn = e.target.closest('.btn-sched-delete');
+    if (deleteBtn) {
+      deleteSchedule(parseInt(deleteBtn.dataset.id, 10));
+    }
+  });
+
   loadConfigs();
+  applyTranslations();
   switchView('run-test');
 });

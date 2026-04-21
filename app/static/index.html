@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="html-root">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -20,20 +20,28 @@
     <nav class="sidebar-nav">
       <button class="nav-btn active" data-view="run-test">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 2l10 6-10 6V2z" fill="currentColor"/></svg>
-        Run Test
+        <span data-i18n="nav.run-test">Run Test</span>
       </button>
       <button class="nav-btn" data-view="results">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="10" width="2" height="4" rx="1" fill="currentColor"/><rect x="7" y="6" width="2" height="8" rx="1" fill="currentColor"/><rect x="12" y="2" width="2" height="12" rx="1" fill="currentColor"/></svg>
-        Results
+        <span data-i18n="nav.results">Results</span>
         <span class="nav-pill" id="results-pill" style="display:none"></span>
       </button>
       <button class="nav-btn" data-view="history">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3.5l2 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        History
+        <span data-i18n="nav.history">History</span>
+      </button>
+      <button class="nav-btn" data-view="schedules">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="11" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M5 2v2M11 2v2M2 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="11" r="1.2" fill="currentColor"/></svg>
+        <span data-i18n="nav.schedules">Schedules</span>
+        <span class="nav-pill" id="schedules-pill" style="display:none"></span>
       </button>
     </nav>
 
-    <div class="sidebar-footer">v1.0.0</div>
+    <div class="sidebar-footer">
+      <span>v1.0.0</span>
+      <button class="btn-lang" id="btn-lang" title="Toggle language">EN</button>
+    </div>
   </aside>
 
   <!-- ══ WORKSPACE ═════════════════════════ -->
@@ -42,7 +50,7 @@
     <!-- TOPBAR -->
     <header class="topbar">
       <div class="topbar-left">
-        <span class="topbar-title" id="topbar-title">Run Test</span>
+        <span class="topbar-title" id="topbar-title" data-i18n="nav.run-test">Run Test</span>
       </div>
       <div class="topbar-right" id="topbar-right" style="display:none">
         <span class="last-status" id="last-status"></span>
@@ -57,21 +65,21 @@
         <div class="view-inner">
 
           <div class="section-hd">
-            <h2>Configure Test</h2>
-            <p>Enter your API endpoint and run an automated quality analysis</p>
+            <h2 data-i18n="run.title">Configure Test</h2>
+            <p data-i18n="run.subtitle">Enter your API endpoint and run an automated quality analysis</p>
           </div>
 
           <!-- Saved configs bar -->
           <div class="configs-bar" id="configs-bar">
             <div class="configs-bar-left">
-              <label for="configs-select">Saved Configs</label>
+              <label for="configs-select" data-i18n="run.saved-configs">Saved Configs</label>
               <select id="configs-select">
-                <option value="">— Load a saved config —</option>
+                <option value="" data-i18n="run.load-config">— Load a saved config —</option>
               </select>
             </div>
             <div class="configs-bar-right">
-              <input id="config-name" type="text" placeholder="Config name…" autocomplete="off" />
-              <button class="btn-save-config" id="btn-save-config">Save Config</button>
+              <input id="config-name" type="text" data-i18n-ph="run.config-name-ph" placeholder="Config name…" autocomplete="off" />
+              <button class="btn-save-config" id="btn-save-config" data-i18n="run.save-config">Save Config</button>
               <button class="btn-delete-config" id="btn-delete-config" style="display:none" title="Delete selected config">×</button>
             </div>
           </div>
@@ -79,20 +87,20 @@
           <!-- Request config -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-hd">
-              <span class="card-title">Request</span>
+              <span class="card-title" data-i18n="run.request">Request</span>
             </div>
             <div class="card-bd">
               <div class="field" style="margin-bottom:10px">
-                <label for="base-url">Base URL <span class="field-hint">optional — prepended when URL starts with /</span></label>
-                <input id="base-url" type="text" placeholder="https://api.example.com" autocomplete="off" />
+                <label for="base-url"><span data-i18n="run.base-url-label">Base URL</span> <span class="field-hint" data-i18n="run.base-url-hint">optional — prepended when URL starts with /</span></label>
+                <input id="base-url" type="text" data-i18n-ph="run.base-url-ph" placeholder="https://api.example.com" autocomplete="off" />
               </div>
               <div class="row-url-method">
                 <div class="field flex-grow">
-                  <label for="url">Endpoint URL</label>
-                  <input id="url" type="text" placeholder="/endpoint  or  https://api.example.com/endpoint" autocomplete="off" />
+                  <label for="url" data-i18n="run.url-label">Endpoint URL</label>
+                  <input id="url" type="text" data-i18n-ph="run.url-ph" placeholder="/endpoint  or  https://api.example.com/endpoint" autocomplete="off" />
                 </div>
                 <div class="field method-field">
-                  <label for="method">Method</label>
+                  <label for="method" data-i18n="run.method-label">Method</label>
                   <select id="method">
                     <option value="GET">GET</option>
                     <option value="POST">POST</option>
@@ -109,29 +117,29 @@
           <div class="two-col" style="margin-bottom:16px">
             <div class="card">
               <div class="card-hd">
-                <span class="card-title">Payload</span>
-                <span class="card-hint">JSON · for POST/PUT/PATCH</span>
+                <span class="card-title" data-i18n="run.payload">Payload</span>
+                <span class="card-hint" data-i18n="run.payload-hint">JSON · for POST/PUT/PATCH</span>
               </div>
               <div class="card-bd">
-                <textarea id="payload" class="code-area" rows="5" placeholder='{&#10;  "username": "johndoe",&#10;  "email": "john@example.com"&#10;}'></textarea>
+                <textarea id="payload" class="code-area" rows="5" placeholder='{"username": "johndoe"}'></textarea>
                 <details class="schema-section" id="schema-section">
-                  <summary class="schema-summary">Expected Response Schema <span class="schema-hint">optional</span></summary>
+                  <summary class="schema-summary"><span data-i18n="run.schema-title">Expected Response Schema</span> <span class="schema-hint" data-i18n="run.schema-hint">optional</span></summary>
                   <div class="schema-body">
                     <div id="schema-fields"></div>
-                    <button class="btn-add-schema-field" id="btn-add-schema-field">+ Add field</button>
+                    <button class="btn-add-schema-field" id="btn-add-schema-field" data-i18n="run.add-field">+ Add field</button>
                   </div>
                 </details>
               </div>
             </div>
             <div class="card">
               <div class="card-hd">
-                <span class="card-title">Auth Headers</span>
-                <span class="card-hint">JSON · optional</span>
+                <span class="card-title" data-i18n="run.auth-headers">Auth Headers</span>
+                <span class="card-hint" data-i18n="run.auth-hint">JSON · optional</span>
               </div>
               <div class="card-bd">
-                <textarea id="headers" class="code-area" rows="5" placeholder='{&#10;  "X-Custom-Header": "value"&#10;}'></textarea>
+                <textarea id="headers" class="code-area" rows="5" placeholder='{"X-Custom-Header": "value"}'></textarea>
                 <div class="auth-token-row">
-                  <label for="auth-token">Bearer Token (shortcut)</label>
+                  <label for="auth-token" data-i18n="run.bearer-label">Bearer Token (shortcut)</label>
                   <input id="auth-token" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…" autocomplete="off" />
                 </div>
               </div>
@@ -142,13 +150,13 @@
           <div class="card" style="margin-bottom:16px">
             <details class="custom-cases-section" id="custom-cases-section">
               <summary class="custom-cases-summary">
-                <span>Custom Test Cases</span>
+                <span data-i18n="run.custom-title">Custom Test Cases</span>
                 <span class="custom-cases-count" id="custom-cases-count" style="display:none"></span>
-                <span class="schema-hint">optional · run alongside auto-generated tests</span>
+                <span class="schema-hint" data-i18n="run.custom-hint">optional · run alongside auto-generated tests</span>
               </summary>
               <div class="custom-cases-body">
                 <div id="custom-cases-list"></div>
-                <button class="btn-add-custom-case" id="btn-add-custom-case">+ Add test case</button>
+                <button class="btn-add-custom-case" id="btn-add-custom-case" data-i18n="run.add-case">+ Add test case</button>
               </div>
             </details>
           </div>
@@ -161,7 +169,7 @@
             </div>
             <button class="btn-run" id="btn-run">
               <svg class="spinner-icon" id="spinner" viewBox="0 0 16 16" fill="none" style="display:none"><circle cx="8" cy="8" r="5.5" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/><path d="M8 2.5A5.5 5.5 0 0 1 13.5 8" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
-              <span id="btn-text">▶ Run AI Test</span>
+              <span id="btn-text" data-i18n="run.btn-run">▶ Run AI Test</span>
             </button>
           </div>
 
@@ -173,9 +181,9 @@
         <div class="view-inner" id="results-inner">
           <div class="empty-state">
             <div class="empty-icon">📊</div>
-            <p class="empty-title">No results yet</p>
-            <p class="empty-desc">Run a test to see your API quality analysis here</p>
-            <button class="btn-secondary" id="go-run-from-results">Go to Run Test</button>
+            <p class="empty-title" data-i18n="results.empty-title">No results yet</p>
+            <p class="empty-desc" data-i18n="results.empty-desc">Run a test to see your API quality analysis here</p>
+            <button class="btn-secondary" id="go-run-from-results" data-i18n="results.go-run">Go to Run Test</button>
           </div>
         </div>
       </div>
@@ -184,29 +192,86 @@
       <div class="view" id="view-history">
         <div class="view-inner">
           <div class="section-hd">
-            <h2>Test History</h2>
-            <p>Click any row to load the full result into the Results view</p>
+            <h2 data-i18n="history.title">Test History</h2>
+            <p data-i18n="history.subtitle">Click any row to load the full result into the Results view</p>
           </div>
 
           <div class="filter-bar">
-            <input id="filter-url" type="text" placeholder="Filter by URL…" autocomplete="off" />
+            <input id="filter-url" type="text" data-i18n-ph="history.filter-url-ph" placeholder="Filter by URL…" autocomplete="off" />
             <select id="filter-severity">
-              <option value="">All severities</option>
-              <option value="low">Low</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option value="" data-i18n="filter.all">All severities</option>
+              <option value="low" data-i18n="filter.low">Low</option>
+              <option value="high" data-i18n="filter.high">High</option>
+              <option value="critical" data-i18n="filter.critical">Critical</option>
             </select>
-            <button class="btn-filter" id="btn-filter">Apply</button>
-            <button class="btn-filter-clear" id="btn-filter-clear">Clear</button>
+            <button class="btn-filter" id="btn-filter" data-i18n="history.apply">Apply</button>
+            <button class="btn-filter-clear" id="btn-filter-clear" data-i18n="history.clear">Clear</button>
           </div>
 
           <div id="history-inner">
             <div class="empty-state">
               <div class="empty-icon">🕘</div>
-              <p class="empty-title">No tests run yet</p>
-              <p class="empty-desc">Your test history will appear here automatically</p>
+              <p class="empty-title" data-i18n="history.empty-title">No tests run yet</p>
+              <p class="empty-desc" data-i18n="history.empty-desc">Your test history will appear here automatically</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── VIEW: SCHEDULES ── -->
+      <div class="view" id="view-schedules">
+        <div class="view-inner">
+
+          <div class="section-hd">
+            <h2 data-i18n="schedules.title">Scheduled Tests</h2>
+            <p data-i18n="schedules.subtitle">Run tests automatically on a recurring schedule</p>
+          </div>
+
+          <!-- Formulario de creación -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-hd">
+              <span class="card-title" data-i18n="schedules.new">New Schedule</span>
+            </div>
+            <div class="card-bd">
+              <div class="sched-form">
+                <div class="field">
+                  <label for="sched-name" data-i18n="schedules.name-label">Name</label>
+                  <input id="sched-name" type="text" data-i18n-ph="schedules.name-ph" placeholder="e.g. Check prod API every hour" autocomplete="off" />
+                </div>
+                <div class="field">
+                  <label for="sched-config" data-i18n="schedules.config-label">Saved Config</label>
+                  <select id="sched-config">
+                    <option value="" data-i18n="schedules.config-ph">— Select a saved config —</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="sched-cron" data-i18n="schedules.cron-label">Cron Expression</label>
+                  <input id="sched-cron" type="text" placeholder="*/30 * * * *" autocomplete="off" />
+                </div>
+                <button class="btn-run" id="btn-add-schedule" style="align-self:flex-end">
+                  <span data-i18n="schedules.add-btn">+ Add Schedule</span>
+                </button>
+              </div>
+              <div class="cron-hints">
+                <span data-i18n="schedules.presets">Presets:</span>
+                <button class="btn-cron-preset" data-cron="*/5 * * * *" data-i18n="schedules.p5m">every 5 min</button>
+                <button class="btn-cron-preset" data-cron="*/30 * * * *" data-i18n="schedules.p30m">every 30 min</button>
+                <button class="btn-cron-preset" data-cron="0 * * * *" data-i18n="schedules.p1h">every hour</button>
+                <button class="btn-cron-preset" data-cron="0 */6 * * *" data-i18n="schedules.p6h">every 6 h</button>
+                <button class="btn-cron-preset" data-cron="0 9 * * *" data-i18n="schedules.p9">daily 9 am</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lista de schedules -->
+          <div id="schedules-inner">
+            <div class="empty-state">
+              <div class="empty-icon">🗓️</div>
+              <p class="empty-title" data-i18n="schedules.empty-title">No schedules yet</p>
+              <p class="empty-desc" data-i18n="schedules.empty-desc">Create one above to start running tests automatically</p>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -214,9 +279,8 @@
   </div><!-- /workspace -->
 </div><!-- /app -->
 
-<!-- ══ TOAST CONTAINER ══════════════���════ -->
 <div id="toasts" class="toasts"></div>
 
-<script src="app.js?v=8"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

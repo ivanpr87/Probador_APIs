@@ -52,3 +52,15 @@ def init_db() -> None:
             conn.execute("ALTER TABLE saved_configs ADD COLUMN base_url TEXT")
         except Exception:
             pass  # columna ya existe — ignorar
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS scheduled_tests (
+                id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                name       TEXT NOT NULL,
+                config_id  INTEGER REFERENCES saved_configs(id) ON DELETE CASCADE,
+                cron       TEXT NOT NULL,
+                enabled    INTEGER DEFAULT 1,
+                last_run   TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
