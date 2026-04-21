@@ -414,11 +414,19 @@ function renderResults(data) {
   const pct     = Math.min(100, Math.max(0, score));
   const sev     = (severity || 'low').toLowerCase();
   const clr     = scoreColor(pct);
-  const passed  = results.filter(r => r.status_code >= 200 && r.status_code < 300).length;
-  const failed  = total_tests - passed;
 
-  const sevClr  = sev === 'critical' ? 'var(--red)' : sev === 'high' ? 'var(--orange)' : 'var(--green)';
-  const kpiSev  = sev === 'critical' ? 'kpi-bad' : sev === 'high' ? 'kpi-warn' : 'kpi-ok';
+  // Usar summary del backend si está disponible (semántica correcta por contrato de test)
+  const passed  = data.summary ? data.summary.passed  : results.filter(r => r.status_code >= 200 && r.status_code < 300).length;
+  const failed  = data.summary ? data.summary.failed  : total_tests - passed;
+
+  const sevClr = sev === 'critical' ? 'var(--red)'
+               : sev === 'high'     ? 'var(--orange)'
+               : sev === 'medium'   ? 'var(--yellow)'
+               : 'var(--green)';
+  const kpiSev = sev === 'critical' ? 'kpi-bad'
+               : sev === 'high'     ? 'kpi-warn'
+               : sev === 'medium'   ? 'kpi-medium'
+               : 'kpi-ok';
   const kpiFail = failed > 0 ? 'kpi-bad' : 'kpi-neutral';
 
   const issueCount  = issues_detected.length;
@@ -619,13 +627,14 @@ function renderHistory(data) {
     const clr   = typeof score === 'number' ? scoreColor(score) : 'var(--text-3)';
     const date  = new Date(item.created_at).toLocaleString();
     const bad   = typeof score === 'number' && score < 50 ? ' score-bad' : '';
+    const validSev = ['low', 'medium', 'high', 'critical'].includes(sev) ? sev : 'low';
     return `
       <div class="hist-row hist-data${bad}" data-idx="${idx}">
         <span class="hist-url" title="${esc(item.url)}">${esc(item.url)}</span>
         <span class="method-tag">${esc(item.method)}</span>
         <span class="hist-date">${date}</span>
         <span class="hist-score" style="color:${clr}">${score}</span>
-        <span class="badge badge-${sev}">${sev.toUpperCase()}</span>
+        <span class="badge badge-${validSev}">${validSev.toUpperCase()}</span>
       </div>`;
   }).join('');
 

@@ -11,6 +11,13 @@ class TestResult(BaseModel):
     expected_status: Optional[int] = None
 
 
+class TestSummary(BaseModel):
+    total_tests: int
+    passed: int
+    failed: int
+    fail_rate: float
+
+
 class TestResponse(BaseModel):
     total_tests: int
     results: List[TestResult]
@@ -18,6 +25,7 @@ class TestResponse(BaseModel):
     severity: str
     quality_score: int
     ai_insights: List[str]
+    summary: Optional[TestSummary] = None
 
 
 class HistoryItem(BaseModel):

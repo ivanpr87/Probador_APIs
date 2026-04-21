@@ -41,16 +41,23 @@ _FALLBACK_FALSE_POSITIVE = (
 def _build_fallback(issues: List[str]) -> List[str]:
     if not issues:
         return _FALLBACK_NO_ISSUES
+    seen: set = set()
     insights = []
     for issue in issues:
-        if "without payload" in issue or "sin payload" in issue:
-            insights.append(_FALLBACK_PAYLOAD)
-        elif "invalid data types" in issue or "tipos de datos" in issue:
-            insights.append(_FALLBACK_TYPES)
-        elif "lento" in issue or "response time" in issue.lower():
-            insights.append(_FALLBACK_SLOW)
-        elif "false positive" in issue.lower() or "falso positivo" in issue.lower():
-            insights.append(_FALLBACK_FALSE_POSITIVE)
+        il = issue.lower()
+        # Cobertura ampliada para los nuevos tipos de issue del motor v2
+        if any(k in il for k in ("without payload", "sin payload", "missing_payload")):
+            if _FALLBACK_PAYLOAD not in seen:
+                seen.add(_FALLBACK_PAYLOAD); insights.append(_FALLBACK_PAYLOAD)
+        elif any(k in il for k in ("invalid data types", "tipos de datos", "invalid_types")):
+            if _FALLBACK_TYPES not in seen:
+                seen.add(_FALLBACK_TYPES); insights.append(_FALLBACK_TYPES)
+        elif any(k in il for k in ("response time", "tiempo de respuesta", "latency")):
+            if _FALLBACK_SLOW not in seen:
+                seen.add(_FALLBACK_SLOW); insights.append(_FALLBACK_SLOW)
+        elif any(k in il for k in ("false positive", "falso positivo")):
+            if _FALLBACK_FALSE_POSITIVE not in seen:
+                seen.add(_FALLBACK_FALSE_POSITIVE); insights.append(_FALLBACK_FALSE_POSITIVE)
     return insights or _FALLBACK_NO_ISSUES
 
 

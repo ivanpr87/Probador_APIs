@@ -486,11 +486,12 @@ input::placeholder, textarea::placeholder { color: var(--text-3); }
   top: 0; left: 0; right: 0;
   height: 2px;
 }
-.kpi-card.kpi-score::before  { background: linear-gradient(90deg, #6366f1, #7c3aed); }
-.kpi-card.kpi-ok::before     { background: var(--green); }
-.kpi-card.kpi-warn::before   { background: var(--orange); }
-.kpi-card.kpi-bad::before    { background: var(--red); }
-.kpi-card.kpi-neutral::before{ background: var(--border); }
+.kpi-card.kpi-score::before   { background: linear-gradient(90deg, #6366f1, #7c3aed); }
+.kpi-card.kpi-ok::before      { background: var(--green); }
+.kpi-card.kpi-medium::before  { background: var(--yellow); }
+.kpi-card.kpi-warn::before    { background: var(--orange); }
+.kpi-card.kpi-bad::before     { background: var(--red); }
+.kpi-card.kpi-neutral::before { background: var(--border); }
 
 .kpi-label {
   font-size: 10px;
@@ -540,6 +541,7 @@ input::placeholder, textarea::placeholder { color: var(--text-3); }
   letter-spacing: .5px;
 }
 .badge-low      { background: var(--green-bg);  color: var(--green);  border: 1px solid var(--green-bd); }
+.badge-medium   { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(234,179,8,.3); }
 .badge-high     { background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-bd); }
 .badge-critical { background: var(--red-bg);    color: var(--red);    border: 1px solid var(--red-bd); }
 

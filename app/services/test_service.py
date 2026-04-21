@@ -115,6 +115,9 @@ def run_test(request: TestRequest) -> TestResponse:
         expected_schema=request.expected_schema,
     )
 
+    from app.models.response_models import TestSummary
+
+    summary_data = analysis.get("summary", {})
     response = TestResponse(
         total_tests=len(raw_results),
         results=[TestResult(**r) for r in raw_results],
@@ -122,6 +125,7 @@ def run_test(request: TestRequest) -> TestResponse:
         severity=analysis["severity"],
         quality_score=analysis["quality_score"],
         ai_insights=analysis["insights"],
+        summary=TestSummary(**summary_data) if summary_data else None,
     )
 
     save_result(request.url, request.method, response.model_dump())
