@@ -1,6 +1,6 @@
 """
 analysis_service.py — Motor de evaluación de calidad de APIs
-v2.0 — Reescritura completa
+v3.0 — Scoring diferenciado 4xx/5xx
 
 Reglas de evaluación (en orden de prioridad):
   1. Código HTTP: señal de mayor prioridad (5xx → CRITICAL, 4xx → MEDIUM)
@@ -322,15 +322,18 @@ def _detect_schema_issues(
 def _calculate_score(
     summary: Dict[str, Any],
     issues: List[Dict[str, Any]],
+    has_5xx: bool,
+    has_4xx: bool,
 ) -> int:
     """
-    Inicia en 100 y aplica penalidades:
-      - ANY 5xx o error de red    → techo máximo de 40
-      - Cada test fallido          → -15
-      - Tasa de fallo > 50 %      → -30 adicional; 100 % → -50
-      - Cada 4xx en valid_request  → -10 (máx -40)
-      - Latencia > 1 200 ms        → -10
-      - Latencia > 700 ms          → -5
+    Inicia en 100 y aplica penalidades diferenciadas:
+      - 5xx o error de red         → techo máximo 40
+      - Cada test fallido          → -10
+      - 100 % fallo + 5xx          → -50; 100 % fallo solo 4xx → -30
+      - Tasa > 50 %                → -20
+      - Cada 4xx                   → -5 (máx -30)
+      - Solo 4xx sin 5xx           → piso mínimo 40
+      - Latencia > 1 200 ms        → -10; > 700 ms → -5
       - INVALID_TYPES_ACCEPTED     → -20
       - MISSING_PAYLOAD_ACCEPTED   → -10
       - FALSE_POSITIVE             → -5
@@ -338,25 +341,25 @@ def _calculate_score(
     """
     score     = 100
     failed    = summary["failed"]
-    fail_rate = summary["fail_rate"]
+    fail_rate = summary["fail_rate"]  # 0-100
     ikeys     = {i["type"] for i in issues}
 
     # Techo por 5xx o error de red
-    if any(k.startswith("HTTP_5") or k == "NETWORK_ERROR" for k in ikeys):
+    if has_5xx or "NETWORK_ERROR" in ikeys:
         score = min(score, 40)
 
-    # Penalidad por tests fallidos
-    score -= failed * 15
+    # Penalidad por tests fallidos (-10 c/u)
+    score -= failed * 10
 
-    # Penalidad por tasa de fallo
+    # Penalidad por tasa de fallo (diferenciada por tipo de fallo)
     if fail_rate >= 100:
-        score -= 50
+        score -= 50 if has_5xx else 30
     elif fail_rate > 50:
-        score -= 30
+        score -= 20
 
-    # Penalidad por 4xx (capped)
-    http_4xx = sum(1 for i in issues if i["type"].startswith("HTTP_4"))
-    score -= min(http_4xx * 10, 40)
+    # Penalidad por 4xx (capped a -30)
+    http_4xx_count = sum(1 for i in issues if i["type"].startswith("HTTP_4"))
+    score -= min(http_4xx_count * 5, 30)
 
     # Penalidad por latencia
     if "HIGH_LATENCY_CRITICAL" in ikeys:
@@ -373,25 +376,45 @@ def _calculate_score(
         if key in ikeys:
             score -= penalty
 
+    # Piso mínimo para escenarios solo 4xx (sin 5xx)
+    if has_4xx and not has_5xx and "NETWORK_ERROR" not in ikeys:
+        score = max(score, 40)
+
     return max(0, min(100, score))
 
 
 # ─── Severidad ────────────────────────────────────────────────────────────────
 
-def _determine_severity(score: int, issues: List[Dict[str, Any]]) -> str:
+def _determine_severity(
+    issues: List[Dict[str, Any]],
+    has_5xx: bool,
+    has_4xx: bool,
+    fail_rate: float,
+    n_failed: int,
+) -> str:
     """
-    CRITICAL : issue CRITICAL presente o score < 40
-    HIGH     : issue HIGH presente o score < 60
-    MEDIUM   : issue MEDIUM presente o score < 80
-    LOW      : sin issues o score >= 80
+    Basada en señales, no en score:
+    CRITICAL : 5xx o endpoint inalcanzable
+    HIGH     : 100 % de fallos sin 5xx
+    MEDIUM   : hay 4xx, o cualquier fallo no clasificado
+    LOW      : sin fallos reales (latencia/schema pueden escalar)
     """
-    worst = max((_SEV_RANK.get(i["severity"], 0) for i in issues), default=0)
+    ikeys = {i["type"] for i in issues}
 
-    if worst >= _SEV_RANK["CRITICAL"] or score < 40:
+    if has_5xx or "NETWORK_ERROR" in ikeys:
         return "CRITICAL"
-    if worst >= _SEV_RANK["HIGH"] or score < 60:
+
+    if fail_rate >= 100 and n_failed > 0:
         return "HIGH"
-    if worst >= _SEV_RANK["MEDIUM"] or score < 80:
+
+    if has_4xx or n_failed > 0:
+        return "MEDIUM"
+
+    # Sin fallos — issues de latencia, schema, etc.
+    worst = max((_SEV_RANK.get(i["severity"], 0) for i in issues), default=0)
+    if worst >= _SEV_RANK["HIGH"]:
+        return "HIGH"
+    if worst >= _SEV_RANK["MEDIUM"]:
         return "MEDIUM"
     return "LOW"
 
@@ -400,95 +423,85 @@ def _determine_severity(score: int, issues: List[Dict[str, Any]]) -> str:
 
 def _generate_local_insights(
     issues: List[Dict[str, Any]],
-    score: int,
-    summary: Dict[str, Any],
     method: str,
-    url: str,
 ) -> List[str]:
     """
-    Genera insights bilingües (EN · ES) cuando Ollama no está disponible.
-    Orden de prioridad: crítico → funcional → performance → schema.
+    Dispatch por tipo de issue → mensaje bilingüe (EN · ES).
+    Orden: infraestructura → funcional → performance → schema.
     """
+    _DISPATCH: Dict[str, str] = {
+        "NETWORK_ERROR": (
+            "Endpoint unreachable — verify URL and server status · "
+            "Endpoint inalcanzable — verificá la URL y el estado del servidor"
+        ),
+        "INVALID_TYPES_ACCEPTED": (
+            "API accepts invalid types — add strict type validation · "
+            "La API acepta tipos inválidos — agregá validación de tipos estricta"
+        ),
+        "MISSING_PAYLOAD_ACCEPTED": (
+            "API accepts empty payloads — implement required-field validation · "
+            "La API acepta payloads vacíos — implementá validación de campos requeridos"
+        ),
+        "FALSE_POSITIVE": (
+            "HTTP 200 but body contains error terms — review response normalization · "
+            "HTTP 200 pero el body contiene términos de error — revisá la normalización"
+        ),
+        "HIGH_LATENCY_CRITICAL": (
+            f"Response time exceeds {_LATENCY_CRITICAL_S * 1000:.0f} ms — "
+            f"consider caching or query optimization · "
+            f"Tiempo de respuesta supera {_LATENCY_CRITICAL_S * 1000:.0f} ms — "
+            f"considerá caché u optimización de queries"
+        ),
+        "HIGH_LATENCY_WARN": (
+            f"Response time exceeds {_LATENCY_WARN_S * 1000:.0f} ms — "
+            f"investigate slow queries or network overhead · "
+            f"Tiempo de respuesta supera {_LATENCY_WARN_S * 1000:.0f} ms — "
+            f"investigá queries lentos o sobrecarga de red"
+        ),
+        "HTTP_405": (
+            f"Endpoint rejects {method} requests — confirm correct HTTP method · "
+            f"El endpoint rechaza solicitudes {method} — confirmá el método HTTP correcto"
+        ),
+    }
+
     insights: List[str] = []
     ikeys = {i["type"] for i in issues}
 
-    # ── Críticos ──────────────────────────────────────────────────────────────
-    if "NETWORK_ERROR" in ikeys:
-        insights.append(
-            "CRITICAL: The endpoint is unreachable — verify the URL and server status · "
-            "CRÍTICO: El endpoint no es accesible — verificá la URL y el estado del servidor"
-        )
+    # 5xx genérico (puede haber HTTP_500, HTTP_502, etc.)
     if any(k.startswith("HTTP_5") for k in ikeys):
         insights.append(
-            "CRITICAL: Server errors detected — review application logs and error handling · "
-            "CRÍTICO: Se detectaron errores del servidor — revisá los logs y el manejo de errores"
-        )
-    if "INVALID_TYPES_ACCEPTED" in ikeys:
-        insights.append(
-            "CRITICAL: The API does not validate input types — add strict type checking on all endpoints · "
-            "CRÍTICO: La API no valida tipos de datos — agregá validación estricta de tipos en todos los endpoints"
+            "Server errors detected — review application logs and error handling · "
+            "Se detectaron errores del servidor — revisá los logs y el manejo de errores"
         )
 
-    # ── Funcionales ───────────────────────────────────────────────────────────
-    if "HTTP_405" in ikeys:
+    # Dispatch por tipo exacto
+    for key, message in _DISPATCH.items():
+        if key in ikeys:
+            insights.append(message)
+
+    # 4xx genérico (sin 405 ya cubierto)
+    has_other_4xx = any(
+        k.startswith("HTTP_4") and k != "HTTP_405" for k in ikeys
+    )
+    if has_other_4xx and "HTTP_405" not in ikeys:
         insights.append(
-            f"The endpoint rejects {method} requests — confirm the correct HTTP method in the API docs · "
-            f"El endpoint rechaza solicitudes {method} — confirmá el método HTTP correcto en la documentación"
-        )
-    elif any(k.startswith("HTTP_4") for k in ikeys):
-        insights.append(
-            "Client errors detected — verify request format, authentication and endpoint URL · "
-            "Se detectaron errores de cliente — verificá el formato de solicitud, autenticación y URL"
-        )
-    if "MISSING_PAYLOAD_ACCEPTED" in ikeys:
-        insights.append(
-            "HIGH: The API accepts requests without required payload — implement input validation · "
-            "ALTO: La API acepta solicitudes sin payload requerido — implementá validación de entrada"
-        )
-    if "FALSE_POSITIVE" in ikeys:
-        insights.append(
-            "HTTP 200 returned but response body contains error terms — review response normalization · "
-            "Se retorna HTTP 200 pero el body contiene términos de error — revisá la normalización de respuestas"
+            "Client errors detected — verify request format, auth and URL · "
+            "Errores de cliente — verificá el formato, autenticación y URL"
         )
 
-    # ── Performance ───────────────────────────────────────────────────────────
-    if "HIGH_LATENCY_CRITICAL" in ikeys:
-        insights.append(
-            f"Response times exceed {_LATENCY_CRITICAL_S * 1000:.0f} ms — "
-            "consider caching, query optimization or CDN · "
-            f"Los tiempos de respuesta superan {_LATENCY_CRITICAL_S * 1000:.0f} ms — "
-            "considerá caché, optimización de queries o CDN"
-        )
-    elif "HIGH_LATENCY_WARN" in ikeys:
-        insights.append(
-            f"Response times exceed {_LATENCY_WARN_S * 1000:.0f} ms — "
-            "investigate slow database queries or network overhead · "
-            f"Los tiempos de respuesta superan {_LATENCY_WARN_S * 1000:.0f} ms — "
-            "investigá queries lentos o sobrecarga de red"
-        )
-
-    # ── Schema ────────────────────────────────────────────────────────────────
+    # Schema violations
     schema_count = sum(1 for i in issues if i["type"].startswith("SCHEMA_"))
     if schema_count:
         insights.append(
-            f"{schema_count} schema violation(s) detected — "
-            "ensure the response contract matches the defined schema · "
-            f"{schema_count} violación(es) de schema detectadas — "
-            "asegurate de que el contrato de respuesta coincida con el schema definido"
+            f"{schema_count} schema violation(s) — ensure response matches defined contract · "
+            f"{schema_count} violación(es) de schema — asegurate de que la respuesta cumpla el contrato"
         )
 
-    # ── Sin issues ────────────────────────────────────────────────────────────
     if not insights:
-        if score == 100:
-            insights.append(
-                "All tests passed with excellent performance — the API is behaving correctly · "
-                "Todos los tests pasaron con rendimiento excelente — la API funciona correctamente"
-            )
-        else:
-            insights.append(
-                "No critical issues detected — the API is healthy · "
-                "No se detectaron issues críticos — la API está saludable"
-            )
+        insights.append(
+            "All tests passed — the API is behaving correctly · "
+            "Todos los tests pasaron — la API funciona correctamente"
+        )
 
     return insights
 
@@ -500,10 +513,10 @@ def _build_summary(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     failed = sum(1 for r in results if _is_failure(r))
     passed = total - failed
     return {
-        "total_tests": total,
-        "passed":      passed,
-        "failed":      failed,
-        "fail_rate":   round((failed / total * 100), 1) if total > 0 else 0.0,
+        "total":     total,
+        "passed":    passed,
+        "failed":    failed,
+        "fail_rate": round((failed / total * 100), 1) if total > 0 else 0.0,
     }
 
 
@@ -525,10 +538,10 @@ def analyze(
         "quality_score": int,              # 0-100
         "insights":      List[str],        # recomendaciones priorizadas
         "summary": {
-            "total_tests": int,
-            "passed":      int,
-            "failed":      int,
-            "fail_rate":   float,
+            "total":     int,
+            "passed":    int,
+            "failed":    int,
+            "fail_rate": float,
         }
     }
     """
@@ -561,8 +574,33 @@ def analyze(
     )
 
     # 4. Score y severidad
-    score    = _calculate_score(summary, structured)
-    severity = _determine_severity(score, structured)
+    has_5xx = any(
+        i["type"].startswith("HTTP_5") or i["type"] == "NETWORK_ERROR"
+        for i in structured
+    )
+    has_4xx = any(i["type"].startswith("HTTP_4") for i in structured)
+
+    score    = _calculate_score(summary, structured, has_5xx, has_4xx)
+    severity = _determine_severity(
+        structured, has_5xx, has_4xx,
+        summary["fail_rate"], summary["failed"],
+    )
+
+    # Guards no negociables
+    if summary["failed"] > 0 and score == 100:
+        score = 99
+    if summary["failed"] > 0 and severity == "LOW":
+        severity = "MEDIUM"
+    if summary["failed"] > 0 and not structured:
+        structured.append({
+            "type":     "FAILURE_DETECTED",
+            "count":    summary["failed"],
+            "severity": "MEDIUM",
+            "message":  (
+                f"{summary['failed']} test(s) fallaron sin causa clasificada · "
+                f"{summary['failed']} test(s) failed without classified cause"
+            ),
+        })
 
     # 5. Insights — Ollama con fallback al engine local
     try:
@@ -575,9 +613,9 @@ def analyze(
             method=method,
             url=url,
         )
-        insights = ai if ai else _generate_local_insights(structured, score, summary, method, url)
+        insights = ai if ai else _generate_local_insights(structured, method)
     except Exception:
-        insights = _generate_local_insights(structured, score, summary, method, url)
+        insights = _generate_local_insights(structured, method)
 
     return {
         "issues":        [i["message"] for i in structured],
