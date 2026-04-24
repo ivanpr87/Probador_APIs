@@ -142,6 +142,33 @@
                   <label for="auth-token" data-i18n="run.bearer-label">Bearer Token (shortcut)</label>
                   <input id="auth-token" type="password" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…" autocomplete="off" />
                 </div>
+                <details class="schema-section" id="oauth-section" style="margin-top:12px">
+                  <summary class="schema-summary">OAuth2 Client Credentials (optional)</summary>
+                  <div class="schema-body">
+                    <div class="field" style="margin-bottom:10px">
+                      <label for="oauth-token-url">Token URL</label>
+                      <input id="oauth-token-url" type="text" placeholder="https://auth.example.com/oauth/token" autocomplete="off" />
+                    </div>
+                    <div class="field" style="margin-bottom:10px">
+                      <label for="oauth-client-id">Client ID</label>
+                      <input id="oauth-client-id" type="text" placeholder="client_id" autocomplete="off" />
+                    </div>
+                    <div class="field" style="margin-bottom:10px">
+                      <label for="oauth-client-secret">Client Secret</label>
+                      <input id="oauth-client-secret" type="password" placeholder="client_secret" autocomplete="off" />
+                    </div>
+                    <div class="row-url-method">
+                      <div class="field flex-grow">
+                        <label for="oauth-scope">Scope</label>
+                        <input id="oauth-scope" type="text" placeholder="read:users write:users" autocomplete="off" />
+                      </div>
+                      <div class="field flex-grow">
+                        <label for="oauth-audience">Audience</label>
+                        <input id="oauth-audience" type="text" placeholder="https://api.example.com" autocomplete="off" />
+                      </div>
+                    </div>
+                  </div>
+                </details>
               </div>
             </div>
           </div>

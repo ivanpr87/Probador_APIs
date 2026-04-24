@@ -1,12 +1,12 @@
 from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
 from app.models.request_models import TestRequest
 from app.models.response_models import HistoryPage, TestResponse
 from app.repositories.test_repository import fetch_history, fetch_history_item
-from app.services.report_service import build_report
+from app.services.report_service import build_pdf_report, build_report
 from app.services.test_service import run_test
 
 router = APIRouter()
@@ -20,6 +20,16 @@ def run_api_test(request: TestRequest) -> TestResponse:
 @router.post("/export-report")
 def export_report(data: Dict[str, Any]) -> JSONResponse:
     return JSONResponse(content=build_report(data))
+
+
+@router.post("/export-report/pdf")
+def export_report_pdf(data: Dict[str, Any]) -> Response:
+    pdf_bytes = build_pdf_report(data)
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": 'attachment; filename="sentinel-report.pdf"'},
+    )
 
 
 @router.get("/history", response_model=HistoryPage)

@@ -9,8 +9,8 @@ def save_config(data: SavedConfigCreate) -> SavedConfig:
     with get_connection() as conn:
         cursor = conn.execute(
             """
-            INSERT INTO saved_configs (name, url, method, payload, headers, base_url)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO saved_configs (name, url, method, payload, headers, base_url, auth_config)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 data.name,
@@ -19,6 +19,7 @@ def save_config(data: SavedConfigCreate) -> SavedConfig:
                 json.dumps(data.payload) if data.payload else None,
                 json.dumps(data.headers) if data.headers else None,
                 data.base_url or None,
+                data.auth_config.model_dump_json() if data.auth_config else None,
             ),
         )
         row = conn.execute(
@@ -53,5 +54,6 @@ def _row_to_config(row) -> SavedConfig:
         payload=json.loads(row["payload"]) if row["payload"] else None,
         headers=json.loads(row["headers"]) if row["headers"] else None,
         base_url=row["base_url"] if row["base_url"] else None,
+        auth_config=json.loads(row["auth_config"]) if row["auth_config"] else None,
         created_at=row["created_at"],
     )

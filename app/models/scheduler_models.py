@@ -17,4 +17,6 @@ class Schedule(BaseModel):
     cron: str
     enabled: bool
     last_run: Optional[str] = None
+    last_status: Optional[str] = None  # 'success' | 'error' | None
+    last_error: Optional[str] = None   # mensaje del último error
     created_at: str

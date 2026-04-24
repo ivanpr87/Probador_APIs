@@ -316,7 +316,7 @@ function renderTopbarActions(viewId) {
       <button class="btn-secondary" id="btn-export-pdf">${t('js.export-pdf')}</button>
     `;
     document.getElementById('btn-export-json').addEventListener('click', downloadReport);
-    document.getElementById('btn-export-pdf').addEventListener('click', () => window.print());
+    document.getElementById('btn-export-pdf').addEventListener('click', downloadPdfReport);
   } else {
     el.style.display = 'none';
     el.innerHTML = '';
@@ -369,15 +369,20 @@ async function runTest() {
   try {
     const expected_schema = buildExpectedSchema();
     const custom_cases    = buildCustomCases();
+    const auth_config     = buildOAuthConfig();
     if (custom_cases === null && document.querySelectorAll('.custom-case-row').length > 0) {
       setLoading(false);
       return; // buildCustomCases ya mostró el toast de error
+    }
+    if (auth_config === undefined) {
+      setLoading(false);
+      return;
     }
 
     const res = await fetch('/run-test', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url, method, payload, headers, expected_schema, custom_cases }),
+      body:    JSON.stringify({ url, method, payload, headers, auth_config, expected_schema, custom_cases }),
     });
 
     if (!res.ok) {
@@ -409,6 +414,7 @@ async function runTest() {
    ───────────────────────────────────────── */
 function renderResults(data) {
   const { total_tests, results, issues_detected, severity, quality_score, ai_insights } = data;
+  const latencyStats = renderLatencyStats(data.latency_stats);
 
   const score   = quality_score ?? 0;
   const pct     = Math.min(100, Math.max(0, score));
@@ -480,6 +486,20 @@ function renderResults(data) {
 
       <div class="card">
         <div class="card-hd">
+          <span class="card-title">⏱ Latency Percentiles</span>
+          <span class="card-hint">${data.latency_stats?.sample_size ?? 0} runs</span>
+        </div>
+        <div class="card-bd">
+          ${latencyStats}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="two-col" style="margin-bottom:16px">
+
+      <div class="card">
+        <div class="card-hd">
           <span class="card-title">${t('js.insights-card')}</span>
           <span class="card-hint">${insightCount} ${insightLabel}</span>
         </div>
@@ -517,6 +537,25 @@ function renderResults(data) {
     </div>
 
   `;
+}
+
+function renderLatencyStats(stats) {
+  if (!stats || !stats.sample_size) {
+    return `<p class="no-items">No latency history available yet</p>`;
+  }
+
+  return `
+    <div class="item-list">
+      <div class="list-item"><div class="dot dot-insight"></div><span>P50: ${formatMs(stats.p50)}</span></div>
+      <div class="list-item"><div class="dot dot-insight"></div><span>P95: ${formatMs(stats.p95)}</span></div>
+      <div class="list-item"><div class="dot dot-insight"></div><span>P99: ${formatMs(stats.p99)}</span></div>
+    </div>
+  `;
+}
+
+function formatMs(value) {
+  if (value == null || Number.isNaN(value)) return '—';
+  return `${Math.round(value)} ms`;
 }
 
 function tagList(items, type) {
@@ -577,6 +616,33 @@ function downloadReport() {
   toast('Report downloaded', 'success');
 }
 
+async function downloadPdfReport() {
+  if (!state.lastResult) return;
+
+  try {
+    const res = await fetch('/export-report/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.lastResult),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Could not export PDF');
+    }
+
+    const blob = await res.blob();
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `sentinel-report-${Date.now()}.pdf`,
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('PDF downloaded', 'success');
+  } catch (e) {
+    toast(e.message || 'Could not export PDF', 'error');
+  }
+}
+
 /* ─────────────────────────────────────────
    History + Pagination
    ───────────────────────────────────────── */
@@ -628,12 +694,13 @@ function renderHistory(data) {
     const date  = new Date(item.created_at).toLocaleString();
     const bad   = typeof score === 'number' && score < 50 ? ' score-bad' : '';
     const validSev = ['low', 'medium', 'high', 'critical'].includes(sev) ? sev : 'low';
+    const delta = renderDelta(item);
     return `
       <div class="hist-row hist-data${bad}" data-idx="${idx}">
         <span class="hist-url" title="${esc(item.url)}">${esc(item.url)}</span>
         <span class="method-tag">${esc(item.method)}</span>
         <span class="hist-date">${date}</span>
-        <span class="hist-score" style="color:${clr}">${score}</span>
+        <span class="hist-score" style="color:${clr}">${score}${delta}</span>
         <span class="badge badge-${validSev}">${validSev.toUpperCase()}</span>
       </div>`;
   }).join('');
@@ -672,6 +739,19 @@ function _renderPagination(page, totalPages, total) {
         <button class="btn-page" data-page="${page + 1}" ${page >= totalPages ? 'disabled' : ''}>›</button>
       </div>
     </div>`;
+}
+
+function renderDelta(item) {
+  if (typeof item?.delta_score !== 'number' || !item?.delta_direction) return '';
+
+  const symbol = item.delta_direction === 'up'
+    ? ' ↑'
+    : item.delta_direction === 'down'
+      ? ' ↓'
+      : ' →';
+
+  const sign = item.delta_score > 0 ? '+' : '';
+  return ` <small style="color:var(--text-3)">${symbol}${sign}${item.delta_score}</small>`;
 }
 
 async function loadHistoryItem(idx) {
@@ -857,6 +937,31 @@ function buildExpectedSchema() {
   return Object.keys(schema).length ? schema : null;
 }
 
+function buildOAuthConfig() {
+  const tokenUrl = document.getElementById('oauth-token-url').value.trim();
+  const clientId = document.getElementById('oauth-client-id').value.trim();
+  const clientSecret = document.getElementById('oauth-client-secret').value.trim();
+  const scope = document.getElementById('oauth-scope').value.trim();
+  const audience = document.getElementById('oauth-audience').value.trim();
+
+  const anyField = tokenUrl || clientId || clientSecret || scope || audience;
+  if (!anyField) return null;
+
+  if (!tokenUrl || !clientId || !clientSecret) {
+    toast('OAuth2 requires token URL, client ID and client secret', 'error');
+    return undefined;
+  }
+
+  return {
+    type: 'oauth2_client_credentials',
+    token_url: tokenUrl,
+    client_id: clientId,
+    client_secret: clientSecret,
+    scope: scope || null,
+    audience: audience || null,
+  };
+}
+
 /* ─────────────────────────────────────────
    Saved Configs
    ───────────────────────────────────────── */
@@ -889,6 +994,12 @@ function applyConfig(config) {
     ? JSON.stringify(config.payload, null, 2) : '';
   document.getElementById('headers').value  = config.headers
     ? JSON.stringify(config.headers, null, 2) : '';
+  document.getElementById('auth-token').value = '';
+  document.getElementById('oauth-token-url').value = config.auth_config?.token_url ?? '';
+  document.getElementById('oauth-client-id').value = config.auth_config?.client_id ?? '';
+  document.getElementById('oauth-client-secret').value = config.auth_config?.client_secret ?? '';
+  document.getElementById('oauth-scope').value = config.auth_config?.scope ?? '';
+  document.getElementById('oauth-audience').value = config.auth_config?.audience ?? '';
   toast(`Config "${config.name}" loaded`, 'success');
 }
 
@@ -933,12 +1044,14 @@ async function saveCurrentConfig() {
     try { headers = JSON.parse(rawHdrs); }
     catch { toast('Invalid JSON in headers', 'error'); return; }
   }
+  const auth_config = buildOAuthConfig();
+  if (auth_config === undefined) return;
 
   try {
     const res = await fetch('/configs', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, url, method, payload, headers, base_url: baseUrl || null }),
+      body:    JSON.stringify({ name, url, method, payload, headers, base_url: baseUrl || null, auth_config }),
     });
     if (res.status === 409) { toast(`Config "${name}" already exists`, 'error'); return; }
     if (!res.ok) throw new Error('Server error');

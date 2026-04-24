@@ -324,7 +324,7 @@ Severity is derived from signals, not score thresholds:
 **Ivan Bastos** — AI Automation Specialist & Product-Oriented Builder  
 Buenos Aires, Argentina
 
-Focused on building AI-powered tools that solve real engineering problems.
+Focused on building Hybrid analysis engine (rule-based + LLM insights) tools that solve real engineering problems.
 
 [ivanbastos18@gmail.com](mailto:ivanbastos18@gmail.com) · [GitHub](https://github.com/ivanpr87)
 

@@ -1,10 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from app.models.request_models import TestRequest
 from app.models.response_models import TestResponse, TestResult
-from app.repositories.test_repository import save_result
+from app.repositories.test_repository import build_latency_stats_for_result, save_result
+from app.services.auth_service import get_oauth2_headers
 from app.services.analysis_service import analyze
 from app.utils.http_client import send_request
 
@@ -75,8 +76,8 @@ def _execute_case(case: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, An
     }
 
 
-def run_test(request: TestRequest) -> TestResponse:
-    base_headers = request.headers or {}
+def run_test(request: TestRequest, source: Optional[Dict[str, Any]] = None) -> TestResponse:
+    base_headers = _resolve_base_headers(request)
     test_cases = _generate_test_cases(request)
 
     # Agregar casos custom del usuario (ejecutados en paralelo junto a los auto-generados)
@@ -126,8 +127,23 @@ def run_test(request: TestRequest) -> TestResponse:
         quality_score=analysis["quality_score"],
         ai_insights=analysis["insights"],
         summary=TestSummary(**summary_data) if summary_data else None,
+        source=source,
+        latency_stats=build_latency_stats_for_result(
+            url=request.url,
+            method=request.method,
+            source=source,
+            current_result={"results": raw_results},
+        ),
     )
 
-    save_result(request.url, request.method, response.model_dump())
+    save_result(request.url, request.method, response.model_dump(), source=source)
 
     return response
+
+
+def _resolve_base_headers(request: TestRequest) -> Dict[str, str]:
+    headers = dict(request.headers or {})
+    if request.auth_config:
+        oauth_headers = get_oauth2_headers(request.auth_config)
+        headers = {**headers, **oauth_headers}
+    return headers

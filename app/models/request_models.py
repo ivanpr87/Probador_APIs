@@ -1,6 +1,8 @@
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, field_validator
 
+from app.models.response_models import OAuth2ClientCredentialsConfig
+
 
 class CustomTestCase(BaseModel):
     name: str
@@ -14,6 +16,7 @@ class TestRequest(BaseModel):
     method: str
     payload: Optional[Dict[str, Any]] = None
     headers: Optional[Dict[str, str]] = None
+    auth_config: Optional[OAuth2ClientCredentialsConfig] = None
     expected_schema: Optional[Dict[str, str]] = None
     custom_cases: Optional[List[CustomTestCase]] = None
 
@@ -25,3 +28,9 @@ class TestRequest(BaseModel):
         if upper not in allowed:
             raise ValueError(f"Method must be one of: {allowed}")
         return upper
+
+
+class OpenAPIImportRequest(BaseModel):
+    spec: Dict[str, Any]
+    base_url: Optional[str] = None
+    name_prefix: Optional[str] = None

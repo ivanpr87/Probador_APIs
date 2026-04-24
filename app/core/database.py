@@ -52,15 +52,30 @@ def init_db() -> None:
             conn.execute("ALTER TABLE saved_configs ADD COLUMN base_url TEXT")
         except Exception:
             pass  # columna ya existe — ignorar
+        try:
+            conn.execute("ALTER TABLE saved_configs ADD COLUMN auth_config TEXT")
+        except Exception:
+            pass  # columna ya existe — ignorar
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS scheduled_tests (
-                id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                name       TEXT NOT NULL,
-                config_id  INTEGER REFERENCES saved_configs(id) ON DELETE CASCADE,
-                cron       TEXT NOT NULL,
-                enabled    INTEGER DEFAULT 1,
-                last_run   TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                name        TEXT NOT NULL,
+                config_id   INTEGER REFERENCES saved_configs(id) ON DELETE CASCADE,
+                cron        TEXT NOT NULL,
+                enabled     INTEGER DEFAULT 1,
+                last_run    TIMESTAMP,
+                last_status TEXT,
+                last_error  TEXT,
+                created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        # Migración: agregar last_status y last_error a instalaciones existentes
+        try:
+            conn.execute('ALTER TABLE scheduled_tests ADD COLUMN last_status TEXT')
+        except Exception:
+            pass  # columna ya existe — ignorar
+        try:
+            conn.execute('ALTER TABLE scheduled_tests ADD COLUMN last_error TEXT')
+        except Exception:
+            pass  # columna ya existe — ignorar
