@@ -1,8 +1,9 @@
 import math
 from statistics import mean
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from app.models.response_models import LatencyStats
+from app.repositories.test_repository import fetch_comparable_runs
 
 
 def extract_run_latency_ms(result: Dict) -> Optional[float]:
@@ -54,3 +55,30 @@ def build_latency_stats(latencies_ms: List[float]) -> Optional[LatencyStats]:
         p95=calculate_percentile(clean, 95),
         p99=calculate_percentile(clean, 99),
     )
+
+
+def build_latency_stats_for_result(
+    url: str,
+    method: str,
+    source: Optional[Dict[str, Any]] = None,
+    current_result: Optional[Dict[str, Any]] = None,
+    before_id: Optional[int] = None,
+) -> Optional[LatencyStats]:
+    run_results = fetch_comparable_runs(
+        url=url,
+        method=method,
+        source=source,
+        before_id=before_id,
+    )
+
+    latencies: List[float] = []
+    for parsed in run_results:
+        latency_ms = extract_run_latency_ms(parsed)
+        if latency_ms is not None:
+            latencies.append(latency_ms)
+
+    current_latency = extract_run_latency_ms(current_result) if current_result else None
+    if current_latency is not None:
+        latencies.append(current_latency)
+
+    return build_latency_stats(latencies)

@@ -17,6 +17,8 @@ from collections import defaultdict
 from statistics import mean
 from typing import Any, Dict, List, Optional, Tuple
 
+from app.services.ai_service import generate_ai_insights
+
 # ─── Umbrales ─────────────────────────────────────────────────────────────────
 
 _LATENCY_WARN_S     = 0.700   # 700 ms
@@ -604,8 +606,6 @@ def analyze(
 
     # 5. Insights — Ollama con fallback al engine local
     try:
-        from app.services.ai_service import generate_ai_insights
-
         ai = generate_ai_insights(
             results=results,
             issues=[i["message"] for i in structured],

@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse, Response
 
 from app.models.request_models import TestRequest
 from app.models.response_models import HistoryPage, TestResponse
-from app.repositories.test_repository import fetch_history, fetch_history_item
+from app.services.history_service import get_history as svc_get_history, get_history_item as svc_get_history_item
 from app.services.report_service import build_pdf_report, build_report
 from app.services.test_service import run_test
 
@@ -39,12 +39,12 @@ def get_history(
     url: str = Query(default=""),
     severity: str = Query(default=""),
 ) -> HistoryPage:
-    return fetch_history(page=page, limit=limit, url_filter=url, severity_filter=severity)
+    return svc_get_history(page=page, limit=limit, url_filter=url, severity_filter=severity)
 
 
 @router.get("/history/{item_id}")
 def get_history_item(item_id: int):
-    result = fetch_history_item(item_id)
+    result = svc_get_history_item(item_id)
     if result is None:
         raise HTTPException(status_code=404, detail="History item not found")
     return result

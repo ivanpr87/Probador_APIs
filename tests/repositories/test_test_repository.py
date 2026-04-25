@@ -1,4 +1,5 @@
-from app.repositories.test_repository import fetch_history, save_result
+from app.repositories.test_repository import save_result
+from app.services.history_service import get_history
 
 
 class TestHistoryDelta:
@@ -10,7 +11,7 @@ class TestHistoryDelta:
             {"quality_score": 80, "severity": "LOW", "total_tests": 1, "results": []},
         )
 
-        history = fetch_history()
+        history = get_history()
 
         assert len(history.items) == 1
         assert history.items[0].previous_score is None
@@ -29,7 +30,7 @@ class TestHistoryDelta:
             {"quality_score": 85, "severity": "LOW", "total_tests": 1, "results": []},
         )
 
-        history = fetch_history()
+        history = get_history()
 
         assert history.items[0].quality_score == 85
         assert history.items[0].previous_score == 60
@@ -59,7 +60,7 @@ class TestHistoryDelta:
             source={"type": "schedule", "config_id": 1, "schedule_id": 10},
         )
 
-        history = fetch_history()
+        history = get_history()
 
         latest_same_schedule = history.items[0]
         assert latest_same_schedule.source is not None
@@ -82,7 +83,7 @@ class TestHistoryDelta:
             {"quality_score": 70, "severity": "MEDIUM", "total_tests": 2, "results": []},
         )
 
-        history = fetch_history()
+        history = get_history()
 
         assert history.items[0].delta_score == 0
         assert history.items[0].delta_direction == "same"

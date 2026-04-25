@@ -1,4 +1,5 @@
-from app.repositories.test_repository import fetch_history_item, save_result
+from app.repositories.test_repository import save_result
+from app.services.history_service import get_history_item
 
 
 class TestLatencyStatsInHistoryItem:
@@ -37,7 +38,7 @@ class TestLatencyStatsInHistoryItem:
             },
         )
 
-        item = fetch_history_item(second_id)
+        item = get_history_item(second_id)
 
         assert item is not None
         assert item["latency_stats"]["sample_size"] == 2
@@ -81,8 +82,8 @@ class TestLatencyStatsInHistoryItem:
             source={"type": "schedule", "config_id": 1, "schedule_id": 10},
         )
 
-        first = fetch_history_item(first_id)
-        second = fetch_history_item(second_id)
+        first = get_history_item(first_id)
+        second = get_history_item(second_id)
 
         assert first is not None
         assert second is not None

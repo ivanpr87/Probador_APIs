@@ -3,8 +3,9 @@ from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 from app.models.request_models import TestRequest
-from app.models.response_models import TestResponse, TestResult
-from app.repositories.test_repository import build_latency_stats_for_result, save_result
+from app.models.response_models import TestResponse, TestResult, TestSummary
+from app.repositories.test_repository import save_result
+from app.services.latency_service import build_latency_stats_for_result
 from app.services.auth_service import get_oauth2_headers
 from app.services.analysis_service import analyze
 from app.utils.http_client import send_request
@@ -116,9 +117,11 @@ def run_test(request: TestRequest, source: Optional[Dict[str, Any]] = None) -> T
         expected_schema=request.expected_schema,
     )
 
-    from app.models.response_models import TestSummary
+    # Import TestSummary eliminado porque ya está a nivel de módulo
 
     summary_data = analysis.get("summary", {})
+    if summary_data and "total" in summary_data:
+        summary_data["total_tests"] = summary_data.pop("total")
     response = TestResponse(
         total_tests=len(raw_results),
         results=[TestResult(**r) for r in raw_results],

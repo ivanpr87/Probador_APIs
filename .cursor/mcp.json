@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "smartbear": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smartbear/mcp@latest"
+      ],
+      "env": {
+        "BUGSNAG_AUTH_TOKEN": "your-bugsnag-auth-token",
+        "BUGSNAG_PROJECT_API_KEY": "your-bugsnag-project-api-key",
+        "REFLECT_API_TOKEN": "your-reflect-api-token",
+        "SWAGGER_API_KEY": "your-swagger-api-key",
+        "PACT_BROKER_BASE_URL": "https://your-tenant.pactflow.io",
+        "PACT_BROKER_TOKEN": "your-pact-broker-token",
+        "QMETRY_API_KEY": "your-qmetry_api_key",
+        "QMETRY_BASE_URL": "https://testmanagement.qmetry.com",
+        "ZEPHYR_API_TOKEN": "your-zephyr-api-token",
+        "ZEPHYR_BASE_URL": "https://api.zephyrscale.smartbear.com/v2"
+      }
+    }
+  }
+}
