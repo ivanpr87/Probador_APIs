@@ -16,12 +16,9 @@ def send_request(
         start = time.time()
         req_headers = headers or {}
 
-        if method == "GET":
-            response = requests.get(url, headers=req_headers, timeout=settings.HTTP_TIMEOUT)
-        elif method == "POST":
-            response = requests.post(url, json=payload, headers=req_headers, timeout=settings.HTTP_TIMEOUT)
-        else:
-            return {"error": f"Unsupported HTTP method: {method}"}
+        response = requests.request(
+            method, url, json=payload, headers=req_headers, timeout=settings.HTTP_TIMEOUT
+        )
 
         return {
             "status_code": response.status_code,

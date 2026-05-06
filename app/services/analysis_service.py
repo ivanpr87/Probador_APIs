@@ -513,10 +513,10 @@ def _build_summary(results: List[Dict[str, Any]]) -> Dict[str, Any]:
     failed = sum(1 for r in results if _is_failure(r))
     passed = total - failed
     return {
-        "total":     total,
-        "passed":    passed,
-        "failed":    failed,
-        "fail_rate": round((failed / total * 100), 1) if total > 0 else 0.0,
+        "total_tests": total,
+        "passed":      passed,
+        "failed":      failed,
+        "fail_rate":   round((failed / total * 100), 1) if total > 0 else 0.0,
     }
 
 
@@ -538,10 +538,10 @@ def analyze(
         "quality_score": int,              # 0-100
         "insights":      List[str],        # recomendaciones priorizadas
         "summary": {
-            "total":     int,
-            "passed":    int,
-            "failed":    int,
-            "fail_rate": float,
+            "total_tests": int,
+            "passed":      int,
+            "failed":      int,
+            "fail_rate":   float,
         }
     }
     """
