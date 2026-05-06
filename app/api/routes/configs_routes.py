@@ -1,3 +1,4 @@
+import logging
 from typing import List
 
 from fastapi import APIRouter, HTTPException
@@ -6,6 +7,8 @@ from app.models.request_models import OpenAPIImportRequest
 from app.models.response_models import OpenAPIImportSummary, SavedConfig, SavedConfigCreate
 from app.repositories.configs_repository import delete_config, list_configs, save_config
 from app.services.openapi_service import import_openapi_spec
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/configs", tags=["configs"])
 
@@ -22,7 +25,8 @@ def create_config(data: SavedConfigCreate) -> SavedConfig:
     except Exception as e:
         if "UNIQUE constraint" in str(e):
             raise HTTPException(status_code=409, detail=f"Config name '{data.name}' already exists")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Internal server error while processing config")
+        raise HTTPException(status_code=500, detail="Internal server error while processing config")
 
 
 @router.post("/import-openapi", response_model=OpenAPIImportSummary, status_code=201)
@@ -36,7 +40,8 @@ def import_openapi(data: OpenAPIImportRequest) -> OpenAPIImportSummary:
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        logger.exception("Internal server error while processing config")
+        raise HTTPException(status_code=500, detail="Internal server error while processing config")
 
     if not summary.created and summary.errors:
         raise HTTPException(status_code=422, detail=summary.errors)

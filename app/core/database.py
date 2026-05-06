@@ -50,12 +50,18 @@ def init_db() -> None:
         # Migración: agregar base_url a instalaciones existentes sin romper el schema
         try:
             conn.execute("ALTER TABLE saved_configs ADD COLUMN base_url TEXT")
-        except Exception:
-            pass  # columna ya existe — ignorar
+        except sqlite3.OperationalError as e:
+            if "duplicate column" in str(e).lower():
+                pass  # columna ya existe — ignorar
+            else:
+                raise
         try:
             conn.execute("ALTER TABLE saved_configs ADD COLUMN auth_config TEXT")
-        except Exception:
-            pass  # columna ya existe — ignorar
+        except sqlite3.OperationalError as e:
+            if "duplicate column" in str(e).lower():
+                pass  # columna ya existe — ignorar
+            else:
+                raise
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS scheduled_tests (
@@ -73,9 +79,15 @@ def init_db() -> None:
         # Migración: agregar last_status y last_error a instalaciones existentes
         try:
             conn.execute('ALTER TABLE scheduled_tests ADD COLUMN last_status TEXT')
-        except Exception:
-            pass  # columna ya existe — ignorar
+        except sqlite3.OperationalError as e:
+            if "duplicate column" in str(e).lower():
+                pass  # columna ya existe — ignorar
+            else:
+                raise
         try:
             conn.execute('ALTER TABLE scheduled_tests ADD COLUMN last_error TEXT')
-        except Exception:
-            pass  # columna ya existe — ignorar
+        except sqlite3.OperationalError as e:
+            if "duplicate column" in str(e).lower():
+                pass  # columna ya existe — ignorar
+            else:
+                raise

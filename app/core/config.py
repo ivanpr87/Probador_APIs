@@ -18,6 +18,7 @@ class Settings:
         self.NOTIFICATIONS_ENABLED: bool = os.getenv('NOTIFICATIONS_ENABLED', 'false').lower() == 'true'
         self.WEBHOOK_URL: str = os.getenv('WEBHOOK_URL', '')
         self.SLACK_WEBHOOK_URL: str = os.getenv('SLACK_WEBHOOK_URL', '')
+        self.ENCRYPTION_KEY: str | None = os.getenv('ENCRYPTION_KEY', None)
 
 
 settings = Settings()
