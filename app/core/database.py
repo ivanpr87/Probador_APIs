@@ -6,6 +6,9 @@ from app.core.config import settings
 
 @contextmanager
 def get_connection():
+    # check_same_thread=False — intentional for WAL-mode multi-thread access.
+    # get_connection() ensures one connection per query via context manager.
+    # LIMITATION: SQLite single-writer — not suitable for multiple OS processes.
     conn = sqlite3.connect(
         settings.DB_PATH,
         check_same_thread=False,

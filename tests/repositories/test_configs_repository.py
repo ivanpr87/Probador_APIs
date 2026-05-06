@@ -8,7 +8,7 @@ from cryptography.fernet import Fernet
 from app.core.config import settings
 from app.core.database import get_connection
 from app.models.response_models import SavedConfigCreate
-from app.repositories.configs_repository import list_configs, save_config
+from app.repositories.configs_repository import list_configs, save_config, config_exists
 
 
 class TestConfigsRepository:
@@ -142,3 +142,22 @@ class TestConfigEncryption:
         warning_logs = [r.message for r in caplog.records if r.levelno == logging.WARNING]
         assert any("encryption" in msg.lower() for msg in warning_logs), \
             f"No encryption warning found in: {warning_logs}"
+
+
+class TestConfigExists:
+    """AF-008: Scalar check — config_exists(id) instead of full list_configs()."""
+
+    def test_existente_retorna_true(self, temp_db):
+        """GIVEN una config guardada WHEN config_exists(id) THEN retorna True."""
+        saved = save_config(SavedConfigCreate(
+            name="test-config", url="https://api.example.com", method="GET",
+        ))
+        assert config_exists(saved.id) is True
+
+    def test_inexistente_retorna_false(self, temp_db):
+        """GIVEN DB vacia WHEN config_exists(id_inexistente) THEN retorna False."""
+        assert config_exists(999) is False
+
+    def test_id_cero_retorna_false(self, temp_db):
+        """GIVEN id=0 (nunca valido en SQLite) WHEN config_exists THEN False."""
+        assert config_exists(0) is False

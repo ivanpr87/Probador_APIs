@@ -4,7 +4,7 @@ from apscheduler.triggers.cron import CronTrigger
 from fastapi import APIRouter, HTTPException
 
 from app.models.scheduler_models import Schedule, ScheduleCreate
-from app.repositories.configs_repository import list_configs
+from app.repositories.configs_repository import config_exists
 from app.repositories.scheduler_repository import (
     create_schedule,
     delete_schedule,
@@ -33,8 +33,7 @@ def post_schedule(data: ScheduleCreate):
         )
 
     # Verificar que la config referenciada existe
-    configs = list_configs()
-    if not any(c.id == data.config_id for c in configs):
+    if not config_exists(data.config_id):
         raise HTTPException(status_code=404, detail="Config no encontrada")
 
     schedule = create_schedule(data)
