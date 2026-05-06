@@ -96,6 +96,27 @@ def delete_config(config_id: int) -> bool:
     return cursor.rowcount > 0
 
 
+def get_config_by_id(config_id: int) -> Optional[SavedConfig]:
+    """AF-008: Fetch single config by id — scalar query, no list_configs() overhead."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT * FROM saved_configs WHERE id = ?", (config_id,)
+        ).fetchone()
+    if not row:
+        return None
+    return _row_to_config(row)
+
+
+def config_exists(config_id: int) -> bool:
+    """AF-008: Scalar check — verifica existencia de config por id en una sola query.
+    Reemplaza list_configs() + any() que cargaba todas las configs."""
+    with get_connection() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM saved_configs WHERE id = ?", (config_id,)
+        ).fetchone()
+    return row is not None
+
+
 def _row_to_config(row) -> SavedConfig:
     raw_auth = row["auth_config"]
     if raw_auth:

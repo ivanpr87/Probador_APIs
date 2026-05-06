@@ -1,4 +1,4 @@
-"""Tests for database migration hardening (AF-006)."""
+"""Tests for database migration hardening (AF-006) and check_same_thread doc (AF-015)."""
 
 import sqlite3
 from unittest.mock import MagicMock, patch
@@ -9,6 +9,7 @@ from app.core.database import init_db
 
 
 class TestMigrationErrorHandling:
+    """AF-006: Migration except blocks catch only sqlite3.OperationalError."""
 
     def test_init_db_es_idempotente_sin_columnas_duplicadas(self, temp_db):
         """Calling init_db twice on the same DB should not raise."""
@@ -77,3 +78,21 @@ class TestMigrationErrorHandling:
         with patch("app.core.database.get_connection", return_value=mock_conn):
             with pytest.raises(MemoryError, match="out of memory"):
                 init_db()
+
+
+class TestCheckSameThreadDoc:
+    """AF-015: check_same_thread=False debe estar documentado."""
+
+    def test_check_same_thread_tiene_comentario_explicativo(self):
+        """GIVEN database.py WHEN get_connection se inspecciona THEN hay un comentario explicando check_same_thread."""
+        import app.core.database as db_mod
+        import inspect
+
+        source = inspect.getsource(db_mod.get_connection)
+
+        # Debe existir un comentario que explique por que se usa check_same_thread=False
+        assert "# check_same_thread=False" in source, (
+            "AF-015: get_connection debe tener un comentario que documente "
+            "explicitamente check_same_thread=False. Se espera algo como: "
+            "'# check_same_thread=False — intentional for WAL-mode ...'"
+        )

@@ -3,7 +3,24 @@ import logging
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
+from app.models.request_models import TestRequest
 from app.models.scheduler_models import Schedule
+from app.repositories.configs_repository import get_config_by_id
+from app.repositories.scheduler_repository import (
+    get_schedule,
+    list_enabled_schedules,
+    mark_last_error,
+    mark_last_run,
+)
+from app.repositories.test_repository import (
+    fetch_previous_comparable_result,
+    save_result,
+)
+from app.services.notification_service import (
+    send_severity_escalation_notification,
+    should_notify_severity_transition,
+)
+from app.services.test_service import run_test
 
 logger = logging.getLogger(__name__)
 
@@ -12,8 +29,6 @@ _scheduler = BackgroundScheduler(timezone="UTC")
 
 def start_scheduler() -> None:
     """Carga todos los schedules habilitados desde la DB y arranca el scheduler."""
-    from app.repositories.scheduler_repository import list_enabled_schedules
-
     schedules = list_enabled_schedules()
     for schedule in schedules:
         _register_job(schedule)
@@ -59,21 +74,10 @@ def _register_job(schedule: Schedule) -> None:
 
 def _run_scheduled_test(config_id: int, schedule_id: int) -> None:
     """Ejecuta el test de una config guardada, persiste el resultado y actualiza el estado."""
-    from app.repositories.configs_repository import list_configs
-    from app.repositories.scheduler_repository import get_schedule, mark_last_run, mark_last_error
-    from app.repositories.test_repository import fetch_previous_comparable_result, save_result
-    from app.models.request_models import TestRequest
-    from app.services.notification_service import (
-        send_severity_escalation_notification,
-        should_notify_severity_transition,
-    )
-    from app.services.test_service import run_test
-
     config = None
     schedule = None
     try:
-        configs = list_configs()
-        config = next((c for c in configs if c.id == config_id), None)
+        config = get_config_by_id(config_id)
         schedule = get_schedule(schedule_id)
         if not config:
             logger.warning("Test programado: config %d no encontrada — se omite", config_id)

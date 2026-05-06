@@ -1,3 +1,4 @@
+import threading
 import time
 from typing import Dict, Tuple
 
@@ -7,6 +8,7 @@ from app.core.config import settings
 from app.models.response_models import OAuth2ClientCredentialsConfig
 
 _TOKEN_CACHE: Dict[Tuple[str, str, str, str], Dict[str, object]] = {}
+_TOKEN_LOCK = threading.Lock()
 _EXPIRY_SAFETY_WINDOW_S = 30
 
 
@@ -23,7 +25,8 @@ def _get_access_token(auth_config: OAuth2ClientCredentialsConfig) -> str:
         auth_config.audience or "",
     )
     now = time.time()
-    cached = _TOKEN_CACHE.get(cache_key)
+    with _TOKEN_LOCK:
+        cached = _TOKEN_CACHE.get(cache_key)
     if cached and float(cached.get("expires_at", 0)) > now + _EXPIRY_SAFETY_WINDOW_S:
         return str(cached["access_token"])
 
@@ -47,8 +50,9 @@ def _get_access_token(auth_config: OAuth2ClientCredentialsConfig) -> str:
         raise RuntimeError("OAuth2 token response did not include access_token")
 
     expires_in = int(payload.get("expires_in", 3600))
-    _TOKEN_CACHE[cache_key] = {
-        "access_token": access_token,
-        "expires_at": now + expires_in,
-    }
+    with _TOKEN_LOCK:
+        _TOKEN_CACHE[cache_key] = {
+            "access_token": access_token,
+            "expires_at": now + expires_in,
+        }
     return str(access_token)

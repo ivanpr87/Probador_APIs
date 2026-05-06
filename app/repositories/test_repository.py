@@ -71,16 +71,13 @@ def fetch_history(
             params + [limit, offset],
         ).fetchall()
 
+    row_ids = [r["id"] for r in rows]
+    batch = fetch_previous_scores_batch(row_ids) if rows else {}
+
     items = []
     for r in rows:
         parsed = json.loads(r["result"])
-        previous = fetch_previous_comparable_result(
-            url=r["url"],
-            method=r["method"],
-            source=parsed.get("source"),
-            before_id=r["id"],
-        )
-        previous_score = previous.get("quality_score") if previous else None
+        previous_score = batch.get(r["id"])
         current_score = parsed.get("quality_score")
         delta_score = (
             current_score - previous_score
@@ -110,6 +107,30 @@ def fetch_history(
         limit=limit,
         total_pages=max(1, math.ceil(total / limit)),
     )
+
+
+def fetch_previous_scores_batch(row_ids: List[int]) -> Dict[int, int]:
+    """AF-007: Batch query — obtiene el quality_score previo para cada row_id
+    en un sola consulta SQL con LEFT JOIN, eliminando N+1 queries.
+
+    Retorna {row_id: previous_score} para los row_ids que tienen historial previo.
+    El source (schedule_id/config_id) se ignora en el batch — la comparación es
+    por (url, method) únicamente, simplificando el análisis de tendencia."""
+    if not row_ids:
+        return {}
+
+    placeholders = ",".join("?" for _ in row_ids)
+    query = (
+        "SELECT t.id, MAX(CAST(json_extract(p.result, '$.quality_score') AS INTEGER)) as prev_score "
+        "FROM tests_history t "
+        "LEFT JOIN tests_history p ON p.url = t.url AND p.method = t.method AND p.id < t.id "
+        f"WHERE t.id IN ({placeholders}) "
+        "GROUP BY t.id"
+    )
+    with get_connection() as conn:
+        result_rows = conn.execute(query, row_ids).fetchall()
+
+    return {row["id"]: row["prev_score"] for row in result_rows if row["prev_score"] is not None}
 
 
 def fetch_previous_comparable_result(
