@@ -63,7 +63,7 @@ def _generate_test_cases(request: TestRequest) -> List[Dict[str, Any]]:
 
 def _execute_case(case: Dict[str, Any], headers: Dict[str, str]) -> Dict[str, Any]:
     # Por-caso: usar headers específicos del caso si existen, sino los globales
-    effective_headers = case.pop("_headers", headers)
+    effective_headers = case.get("_headers", headers)
     outcome = send_request(case["url"], case["method"], case["payload"], effective_headers)
     return {
         "test_name":       case["test_name"],

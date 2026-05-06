@@ -14,6 +14,7 @@ from app.services.analysis_service import (
     _is_failure,
     _calculate_score,
     _determine_severity,
+    _build_summary,
     analyze,
 )
 
@@ -22,10 +23,10 @@ from app.services.analysis_service import (
 
 def _make_summary(total: int, failed: int) -> dict:
     return {
-        'total':     total,
-        'passed':    total - failed,
-        'failed':    failed,
-        'fail_rate': round(failed / total * 100, 1) if total else 0.0,
+        'total_tests': total,
+        'passed':      total - failed,
+        'failed':      failed,
+        'fail_rate':   round(failed / total * 100, 1) if total else 0.0,
     }
 
 
@@ -237,6 +238,44 @@ class TestDetermineSeverity:
         assert resultado != 'LOW'
 
 
+# ─── _build_summary() ─────────────────────────────────────────────────────────
+
+class TestBuildSummary:
+
+    def test_retorna_total_tests_como_clave(self):
+        """GIVEN 3 resultados WHEN _build_summary() THEN la clave es 'total_tests' (no 'total')."""
+        results = [
+            _make_result('valid_request', 200),
+            _make_result('valid_request', 500),   # fallo real
+            _make_result('valid_request', 200),
+        ]
+        summary = _build_summary(results)
+        assert 'total_tests' in summary
+        assert summary['total_tests'] == 3
+        assert summary['passed'] == 2
+        assert summary['failed'] == 1
+        assert summary['fail_rate'] == pytest.approx(33.3, 0.1)
+
+    def test_testsummary_model_acepta_output(self):
+        """GIVEN _build_summary output WHEN se construye TestSummary THEN no lanza ValidationError."""
+        from app.models.response_models import TestSummary
+        results = [_make_result('valid_request', 200)]
+        summary_dict = _build_summary(results)
+        ts = TestSummary(**summary_dict)
+        assert ts.total_tests == 1
+        assert ts.passed == 1
+        assert ts.failed == 0
+
+    def test_sin_resultados_fail_rate_cero(self):
+        """GIVEN lista vacia WHEN _build_summary() THEN fail_rate es 0.0."""
+        summary = _build_summary([])
+        assert summary['total_tests'] == 0
+        assert summary['fail_rate'] == 0.0
+
+
+# ─── _execute_case (AF-014) — test en tests/services/test_test_service.py
+
+
 # ─── analyze() ────────────────────────────────────────────────────────────────
 
 class TestAnalyze:
@@ -253,7 +292,7 @@ class TestAnalyze:
             _make_result('invalid_types', 400),
         ]
         output = analyze(results)
-        assert output['summary']['total'] == 3
+        assert output['summary']['total_tests'] == 3
 
     def test_valid_request_exitoso_low(self, mock_ai_service):
         results = [_make_result('valid_request', 200, response_body='{"id": 1}')]
